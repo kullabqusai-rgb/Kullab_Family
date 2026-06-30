@@ -1,0 +1,2131 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>شجرة العائلة</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap');
+
+  :root {
+    --bg:#0f0e0c; --surface:#1a1814; --surface2:#231f1a;
+    --gold:#c9962a; --gold-light:#e8b84b; --gold-dim:#7a5a18;
+    --text:#e8dcc8; --text-dim:#8a7a62;
+    --border:#2e2820; --red:#c0392b; --green:#27ae60;
+    --node-w:160px;
+  }
+  html.light-theme {
+    --bg:#f5f0e8; --surface:#fffdf7; --surface2:#f0ead8;
+    --gold:#a07020; --gold-light:#c9962a; --gold-dim:#c9a84c;
+    --text:#1a1208; --text-dim:#6a5a42;
+    --border:#d4c4a0; --red:#c0392b; --green:#27ae60;
+  }
+  html.light-theme header{background:linear-gradient(135deg,#f0ead8,#e8e0cc);}
+  html.light-theme #canvas-wrap{background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(201,150,42,.08) 0%,transparent 60%),var(--bg);}
+  html.light-theme .node{box-shadow:0 2px 8px rgba(0,0,0,.08);}
+  html.light-theme svg line, html.light-theme svg path{stroke:#a07020 !important;opacity:0.6;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Tajawal',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+  /* ── HEADER ── */
+  header{background:linear-gradient(135deg,#1a1510,#0f0e0c);border-bottom:1px solid var(--gold-dim);
+    padding:14px 24px;display:flex;align-items:center;justify-content:space-between;
+    position:sticky;top:0;z-index:100;box-shadow:0 4px 24px rgba(0,0,0,.6);}
+  .logo{display:flex;align-items:center;gap:10px;}
+  .logo-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--gold),var(--gold-dim));
+    border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;
+    box-shadow:0 0 14px rgba(201,150,42,.35);}
+  .logo-text{font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--gold-light),var(--gold));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+  .header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+  /* ── BUTTONS ── */
+  .btn{padding:7px 16px;border-radius:8px;border:none;cursor:pointer;
+    font-family:'Tajawal',sans-serif;font-size:13px;font-weight:600;transition:all .2s;}
+  .btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold-dim));color:#0f0e0c;}
+  .btn-gold:hover{filter:brightness(1.15);transform:translateY(-1px);}
+  .btn-outline{background:transparent;border:1px solid var(--gold-dim);color:var(--gold);}
+  .btn-outline:hover{border-color:var(--gold);background:rgba(201,150,42,.1);}
+  .btn-danger{background:rgba(192,57,43,.2);border:1px solid #c0392b;color:#e74c3c;}
+  .btn-danger:hover{background:rgba(192,57,43,.35);}
+  .btn-blue{background:rgba(41,128,185,.2);border:1px solid #2980b9;color:#5dade2;}
+  .btn-blue:hover{background:rgba(41,128,185,.35);}
+
+  .admin-badge{background:linear-gradient(135deg,var(--gold),var(--gold-dim));color:#0f0e0c;
+    padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;}
+  .temp-badge{background:linear-gradient(135deg,#2980b9,#1a5276);color:#fff;
+    padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;}
+
+  /* ── TOOLBAR ── */
+  .toolbar{display:flex;gap:8px;align-items:center;padding:8px 24px;
+    background:var(--surface);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+
+  /* ── CANVAS ── */
+  #canvas-wrap{width:100%;height:calc(100vh - 110px);overflow:hidden;position:relative;
+    background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(201,150,42,.04) 0%,transparent 60%),var(--bg);
+    cursor:grab;touch-action:none;user-select:none;}
+  #canvas-wrap.panning{cursor:grabbing;}
+  #tree-inner{position:absolute;top:0;left:0;transform-origin:0 0;will-change:transform;}
+  #tree-canvas{position:relative;padding:60px 40px 120px;}
+  svg#lines{position:absolute;top:0;left:0;pointer-events:none;overflow:visible;}
+
+  /* ── NODE ── */
+  .node{position:absolute;width:var(--node-w);background:var(--surface);
+    border:1.5px solid var(--border);border-radius:14px;padding:14px 10px 10px;
+    user-select:none;text-align:center;transition:box-shadow .2s,border-color .2s;
+    cursor:default;}
+  .node:hover{border-color:var(--gold-dim);box-shadow:0 4px 20px rgba(201,150,42,.2);}
+  .node.root-node{border-color:var(--gold);box-shadow:0 0 18px rgba(201,150,42,.25);}
+  .node.root-node .node-avatar{background:linear-gradient(135deg,var(--gold),var(--gold-dim));}
+  .node-avatar{width:46px;height:46px;border-radius:50%;background:var(--surface2);
+    border:2px solid var(--border);margin:0 auto 7px;
+    display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .gender-m .node-avatar{border-color:#2980b9;}
+  .gender-f .node-avatar{border-color:#8e44ad;}
+  .node-name{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;word-break:break-word;}
+  .node-info{font-size:10px;color:var(--text-dim);margin-bottom:8px;min-height:13px;}
+  .node-actions{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;}
+  .node-btn{padding:3px 8px;border-radius:6px;border:none;cursor:pointer;
+    font-family:'Tajawal',sans-serif;font-size:11px;font-weight:600;transition:all .15s;}
+  .node-btn-add{background:rgba(39,174,96,.2);color:#2ecc71;border:1px solid rgba(39,174,96,.4);}
+  .node-btn-add:hover{background:rgba(39,174,96,.35);}
+  .node-btn-edit{background:rgba(201,150,42,.15);color:var(--gold);border:1px solid var(--gold-dim);}
+  .node-btn-edit:hover{background:rgba(201,150,42,.3);}
+  .node-btn-del{background:rgba(192,57,43,.15);color:#e74c3c;border:1px solid rgba(192,57,43,.4);}
+  .node-btn-del:hover{background:rgba(192,57,43,.3);}
+  .node-btn-parent{background:rgba(52,152,219,.15);color:#5dade2;border:1px solid rgba(52,152,219,.4);}
+  .node-btn-parent:hover{background:rgba(52,152,219,.3);}
+
+  /* ── أزرار التنقل بين الإخوة ── */
+  .sibling-nav{position:absolute;top:50%;transform:translateY(-50%);
+    display:flex;flex-direction:column;gap:3px;z-index:10;}
+  .sibling-nav.nav-right{right:-28px;}
+  .sibling-nav.nav-left{left:-28px;}
+  .sibling-nav.nav-up{top:-28px;left:50%;transform:translateX(-50%);}
+  .sibling-nav.nav-down{top:auto;bottom:-28px;left:50%;transform:translateX(-50%);}
+  .sibnav-btn{width:22px;height:22px;border-radius:50%;border:1.5px solid var(--gold-dim);
+    background:var(--surface2);color:var(--gold);font-size:11px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:all .15s;padding:0;line-height:1;}
+  .sibnav-btn:hover{background:var(--gold);color:#000;border-color:var(--gold);
+    transform:scale(1.15);}
+  .sibnav-up{font-size:13px;}
+
+  /* ── LONG-PRESS TOOLTIP ── */
+  #lpTooltip{
+    display:none;position:fixed;z-index:600;
+    background:linear-gradient(135deg,#1e1a12,#141108);
+    border:1px solid var(--gold);border-radius:13px;
+    padding:12px 16px;max-width:260px;
+    box-shadow:0 8px 32px rgba(0,0,0,.8),0 0 0 1px rgba(201,150,42,.15);
+    pointer-events:none;text-align:right;direction:rtl;
+    animation:lpFadeIn .15s ease;
+  }
+  @keyframes lpFadeIn{from{opacity:0;transform:scale(.93)}to{opacity:1;transform:scale(1)}}
+  #lpTooltip.show{display:block;}
+  #lpTooltip .lp-name{font-size:15px;font-weight:700;color:var(--gold-light);margin-bottom:6px;word-break:break-word;white-space:normal;}
+  #lpTooltip .lp-chain{font-size:11px;color:var(--text-dim);line-height:2;word-break:break-word;white-space:normal;}
+  #lpTooltip .lp-chain .lp-arrow{color:var(--gold-dim);margin:0 3px;}
+  #lpTooltip .lp-meta{font-size:10px;color:var(--text-dim);margin-top:6px;border-top:1px solid var(--border);padding-top:6px;}
+
+  /* ── MODAL ── */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
+    align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+  .modal-bg.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--gold-dim);border-radius:18px;
+    padding:26px;width:340px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.8);
+    animation:popIn .2s ease;max-height:90vh;overflow-y:auto;}
+  .modal-wide{width:500px;}
+  @keyframes popIn{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+  .modal h3{font-size:17px;font-weight:700;color:var(--gold-light);margin-bottom:18px;text-align:center;}
+  .form-group{margin-bottom:13px;}
+  .form-group label{display:block;font-size:12px;color:var(--text-dim);margin-bottom:5px;font-weight:600;}
+  .form-group input,.form-group select,.form-group textarea{width:100%;background:var(--surface2);
+    border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);
+    font-family:'Tajawal',sans-serif;font-size:13px;outline:none;transition:border-color .2s;}
+  .form-group input:focus,.form-group select:focus{border-color:var(--gold-dim);}
+  .form-group select option{background:var(--surface2);}
+  .modal-actions{display:flex;gap:8px;margin-top:18px;justify-content:flex-end;}
+
+  /* ── TOAST ── */
+  #toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+    background:var(--surface);border:1px solid var(--gold-dim);color:var(--text);
+    padding:9px 20px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .3s;
+    z-index:300;pointer-events:none;white-space:nowrap;}
+  #toast.show{opacity:1;}
+
+  /* ── EMPTY STATE ── */
+  .empty-state{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    text-align:center;color:var(--text-dim);}
+  .empty-state .big-icon{font-size:60px;margin-bottom:14px;opacity:.3;}
+  .empty-state p{font-size:15px;margin-bottom:18px;}
+
+  /* ── TEMP PW TABLE ── */
+  .tp-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .tp-table th{background:var(--surface2);color:var(--text-dim);padding:6px 8px;
+    text-align:right;font-weight:600;border-bottom:1px solid var(--border);}
+  .tp-table td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+  .tp-table tr:last-child td{border-bottom:none;}
+  .pw-code{font-family:monospace;background:var(--surface2);padding:2px 6px;border-radius:4px;
+    color:var(--gold-light);letter-spacing:1px;}
+  .badge-active{background:rgba(39,174,96,.2);color:#2ecc71;border:1px solid rgba(39,174,96,.4);
+    padding:1px 7px;border-radius:10px;font-size:10px;}
+  .badge-expired{background:rgba(192,57,43,.15);color:#e74c3c;border:1px solid rgba(192,57,43,.3);
+    padding:1px 7px;border-radius:10px;font-size:10px;}
+
+  /* ── VISITORS ── */
+  .visitor-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+    padding:10px 12px;font-size:11px;line-height:1.8;}
+  .visitor-card .vc-time{color:var(--gold);font-weight:700;font-size:12px;}
+  .visitor-card .vc-info{color:var(--text-dim);}
+  .visitor-stat{background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+    padding:8px 14px;text-align:center;min-width:80px;}
+  .visitor-stat .vs-num{font-size:20px;font-weight:700;color:var(--gold);}
+  .visitor-stat .vs-lbl{font-size:10px;color:var(--text-dim);}
+
+  /* ── EXPORT OVERLAY PROGRESS ── */
+  #exportOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:400;
+    align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+  #exportOverlay.show{display:flex;}
+  #exportOverlay p{color:var(--gold-light);font-size:16px;font-weight:600;}
+
+  /* ── EXPORT MODAL ── */
+  .export-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .export-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:12px;
+    padding:14px 12px;cursor:pointer;text-align:center;transition:all .2s;user-select:none;}
+  .export-card:hover{border-color:var(--gold-dim);background:rgba(201,150,42,.08);}
+  .export-card.selected{border-color:var(--gold);background:rgba(201,150,42,.15);
+    box-shadow:0 0 0 2px rgba(201,150,42,.25);}
+  .export-card .ec-icon{font-size:26px;margin-bottom:7px;}
+  .export-card .ec-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px;}
+  .export-card .ec-desc{font-size:10px;color:var(--text-dim);line-height:1.5;}
+  .export-section{margin-bottom:14px;}
+  .export-section-label{font-size:11px;font-weight:700;color:var(--text-dim);
+    text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+  .export-scope-btns{display:flex;gap:7px;}
+  .export-scope-btn{flex:1;min-width:140px;padding:7px 10px;border-radius:8px;border:1.5px solid var(--border);
+    background:var(--surface2);color:var(--text-dim);cursor:pointer;font-family:'Tajawal',sans-serif;
+    font-size:11px;font-weight:600;transition:all .2s;text-align:center;}
+  .export-scope-btn:hover{border-color:var(--gold-dim);color:var(--text);}
+  .export-scope-btn.active{border-color:var(--gold);background:rgba(201,150,42,.15);color:var(--gold);}
+  .export-scope-btn.disabled{opacity:.35;pointer-events:none;}
+  .export-quality-row{display:flex;gap:7px;align-items:center;}
+  .export-quality-row label{font-size:12px;color:var(--text-dim);white-space:nowrap;}
+  .export-quality-row select{flex:1;background:var(--surface2);border:1px solid var(--border);
+    border-radius:7px;padding:6px 10px;color:var(--text);font-family:'Tajawal',sans-serif;
+    font-size:12px;outline:none;}
+  .export-preview-wrap{background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+    padding:10px;min-height:80px;display:flex;align-items:center;justify-content:center;
+    margin-bottom:12px;overflow:hidden;}
+  .export-preview-wrap canvas{max-width:100%;border-radius:6px;}
+  #exportModal .modal{width:460px;}
+
+  /* ── SEARCH BAR ── */
+  #searchWrap{display:flex;align-items:center;gap:6px;position:relative;}
+  #searchInput{background:var(--surface2);border:1px solid var(--gold-dim);border-radius:9px;
+    padding:7px 14px 7px 36px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:13px;
+    outline:none;width:220px;transition:border-color .2s,width .2s;}
+  #searchInput:focus{border-color:var(--gold);width:260px;}
+  #searchInput::placeholder{color:var(--text-dim);}
+  .search-icon{position:absolute;left:10px;color:var(--text-dim);font-size:15px;pointer-events:none;}
+  #searchResults{position:absolute;top:38px;right:0;width:280px;background:var(--surface);
+    border:1px solid var(--gold-dim);border-radius:10px;z-index:500;
+    box-shadow:0 8px 28px rgba(0,0,0,.7);display:none;max-height:220px;overflow-y:auto;}
+  #searchResults.open{display:block;}
+  .sr-item{padding:9px 14px;cursor:pointer;font-size:13px;color:var(--text);
+    border-bottom:1px solid var(--border);transition:background .15s;}
+  .sr-item:last-child{border-bottom:none;}
+  .sr-item:hover{background:rgba(201,150,42,.1);}
+  .sr-item .sr-path{font-size:10px;color:var(--text-dim);margin-top:2px;direction:rtl;text-align:right;unicode-bidi:embed;}
+  /* node highlight when found */
+  .node.search-highlight{border-color:var(--gold)!important;
+    box-shadow:0 0 0 3px rgba(201,150,42,.45),0 0 24px rgba(201,150,42,.35)!important;
+    animation:pulseGold 1.2s ease 3;}
+  @keyframes pulseGold{0%,100%{box-shadow:0 0 0 3px rgba(201,150,42,.45),0 0 24px rgba(201,150,42,.35)}
+    50%{box-shadow:0 0 0 6px rgba(201,150,42,.25),0 0 40px rgba(201,150,42,.55)}}
+  /* focus frame overlay on canvas */
+  #focusFrame{display:none;position:absolute;pointer-events:none;border:2px solid var(--gold);
+    border-radius:16px;box-shadow:0 0 0 4px rgba(201,150,42,.2);transition:all .3s;z-index:10;}
+
+  @media(max-width:600px){
+    header{padding:10px 14px;}
+    .logo-text{font-size:17px;}
+    .toolbar{padding:7px 14px;}
+    #searchInput{width:160px;}
+    #searchInput:focus{width:190px;}
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🌳</div>
+    <span class="logo-text">شجرة العائلة</span>
+  </div>
+  <div class="header-actions" id="headerActions">
+    <button class="btn btn-outline" onclick="openModal('helpModal')" title="إرشادات الاستخدام">❓ مساعدة</button>
+    <button class="btn btn-outline" onclick="openAdminLogin()">🔑 دخول المدير</button>
+  </div>
+</header>
+
+<div class="toolbar" id="toolbar">
+  <button class="btn btn-blue" onclick="openExportModal()">📤 تصدير</button>
+  <!-- admin-only buttons injected here -->
+</div>
+<!-- SEARCH BAR (fixed below header, always visible) -->
+<div style="display:flex;align-items:center;justify-content:center;padding:8px 24px;
+  background:var(--surface);border-bottom:1px solid var(--border);gap:10px;">
+  <div id="searchWrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="ابحث بالاسم..."
+      autocomplete="off" oninput="onSearchInput()" onkeydown="onSearchKey(event)">
+    <div id="searchResults"></div>
+  </div>
+  <button class="btn btn-outline" onclick="clearSearch()" style="font-size:12px;padding:5px 10px">✕ مسح</button>
+</div>
+
+<div id="canvas-wrap">
+  <div id="tree-inner">
+  <div id="tree-canvas">
+    <svg id="lines" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="focusFrame"></div>
+    <div class="empty-state" id="emptyState">
+      <div class="big-icon">🌳</div>
+      <p>لا توجد بيانات بعد</p>
+      <p style="font-size:12px;color:var(--text-dim)" id="emptyHint">سجّل دخولك كمدير لبدء الإضافة</p>
+    </div>
+  </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="lpTooltip"></div>
+
+<!-- export overlay / progress -->
+<div id="exportOverlay"><p id="exportOverlayMsg">⏳ جاري التصدير...</p></div>
+
+<!-- ══ EXPORT MODAL ══ -->
+<div class="modal-bg" id="exportModal">
+  <div class="modal" style="width:460px;max-width:96vw;">
+    <h3>📤 تصدير شجرة العائلة</h3>
+
+    <!-- النطاق -->
+    <div class="export-section">
+      <div class="export-section-label">النطاق</div>
+      <!-- صف 1: كل الشجرة -->
+      <div class="export-scope-btns" style="margin-bottom:7px">
+        <div class="export-scope-btn active" id="scopeAll" onclick="setExportScope('all')">🌳 الشجرة كاملة</div>
+      </div>
+      <!-- صف 2: خيارات الشخص المحدد -->
+      <div style="font-size:10px;color:var(--text-dim);margin-bottom:5px;font-weight:600" id="partialLabel">
+        الشخص المحدد: <span id="partialName" style="color:var(--gold)">—</span>
+      </div>
+      <div class="export-scope-btns" style="flex-wrap:wrap;gap:6px;" id="partialScopeBtns">
+        <div class="export-scope-btn" id="scopeAncestorsChildren" onclick="setExportScope('ancestorsChildren')" title="الشخص + كل أجداده + أبناؤه المباشرون">👨‍👦 مع الأجداد والأبناء</div>
+        <div class="export-scope-btn" id="scopeDescendants" onclick="setExportScope('descendants')" title="الشخص + أبناؤه + أحفاده حتى آخر الشجرة">🌿 مع كل الذرية</div>
+        <div class="export-scope-btn" id="scopeFamily" onclick="setExportScope('family')" title="الشخص + أبوه + إخوانه + أبناؤه">👨‍👩‍👧‍👦 العائلة المباشرة</div>
+        <div class="export-scope-btn" id="scopeFamilyDeep" onclick="setExportScope('familyDeep')" title="الشخص + أبوه + إخوانه + أبناؤه + أبناء الإخوان">👨‍👩‍👧‍👦+ مع أبناء الإخوان</div>
+      </div>
+      <!-- خيار إضافي: أبناء الإخوة -->
+      <div id="sibChildrenToggleWrap" style="display:none;margin-top:7px;align-items:center;gap:8px">
+      </div>
+    </div>
+
+    <!-- خيارات الجودة -->
+    <div class="export-section">
+      <div class="export-section-label">الجودة والمظهر</div>
+      <div class="export-quality-row">
+        <label>الدقة:</label>
+        <select id="exportScale">
+          <option value="1">عادية (×1)</option>
+          <option value="2" selected>عالية (×2)</option>
+          <option value="3">ممتازة (×3)</option>
+          <option value="4">طباعة (×4)</option>
+        </select>
+        <label style="margin-right:10px">خلفية:</label>
+        <select id="exportBg">
+          <option value="dark" selected>داكنة</option>
+          <option value="light">فاتحة</option>
+          <option value="transparent">شفافة</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- اختيار الصيغة -->
+    <div class="export-section">
+      <div class="export-section-label">صيغة الحفظ</div>
+      <div class="export-grid">
+        <div class="export-card selected" data-fmt="png" onclick="selectFmt(this,'png')">
+          <div class="ec-icon">🖼️</div>
+          <div class="ec-title">PNG</div>
+          <div class="ec-desc">جودة عالية مع دعم الشفافية</div>
+        </div>
+        <div class="export-card" data-fmt="jpg" onclick="selectFmt(this,'jpg')">
+          <div class="ec-icon">📷</div>
+          <div class="ec-title">JPG</div>
+          <div class="ec-desc">حجم أصغر مناسب للمشاركة</div>
+        </div>
+        <div class="export-card" data-fmt="svg" onclick="selectFmt(this,'svg')">
+          <div class="ec-icon">📐</div>
+          <div class="ec-title">SVG</div>
+          <div class="ec-desc">رسوم متجهة قابلة للتكبير بلا حدود</div>
+        </div>
+        <div class="export-card" data-fmt="json" id="jsonExportCard" onclick="selectFmt(this,'json')">
+          <div class="ec-icon">💾</div>
+          <div class="ec-title">JSON احتياطي</div>
+          <div class="ec-desc">حفظ كامل البيانات للاستعادة لاحقاً</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- معاينة مصغرة -->
+    <div class="export-preview-wrap" id="exportPreviewWrap">
+      <span style="color:var(--text-dim);font-size:12px" id="exportPreviewMsg">اضغط "معاينة" لرؤية الشجرة قبل الحفظ</span>
+    </div>
+
+    <div class="modal-actions" style="flex-wrap:wrap;gap:8px;">
+      <button class="btn btn-outline" onclick="closeModal('exportModal')">إلغاء</button>
+      <button class="btn btn-outline" onclick="runExportPreview()">👁️ معاينة</button>
+      <button class="btn btn-gold" onclick="runExport()">⬇️ تحميل</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADD/EDIT MODAL ══ -->
+<div class="modal-bg" id="personModal">
+  <div class="modal">
+    <h3 id="personModalTitle">إضافة فرد</h3>
+    <div class="form-group"><label>الاسم الكامل *</label>
+      <input type="text" id="pName" placeholder="أدخل الاسم"></div>
+    <div class="form-group"><label>الجنس</label>
+      <select id="pGender"><option value="m">ذكر 👨</option><option value="f">أنثى 👩</option></select></div>
+    <div class="form-group"><label>سنة الميلاد</label>
+      <input type="number" id="pBirth" placeholder="مثال: 1970" min="1800" max="2099"></div>
+    <div class="form-group"><label>ملاحظة</label>
+      <input type="text" id="pNote" placeholder="أي معلومة إضافية"></div>
+    <!-- أزرار الترتيب — تظهر فقط عند التعديل -->
+    <div id="reorderBtns" style="display:none;margin-bottom:12px;">
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;font-weight:600">ترتيب بين الإخوة:</div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" style="flex:1;font-size:12px" onclick="reorderNode('right')">▶ تأخير (يمين)</button>
+        <button class="btn btn-outline" style="flex:1;font-size:12px" onclick="reorderNode('left')">تقديم (يسار) ◀</button>
+      </div>
+      <div id="reorderPos" style="font-size:11px;color:var(--gold);text-align:center;margin-top:5px"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('personModal')">إلغاء</button>
+      <button class="btn btn-gold" onclick="savePerson()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ADMIN LOGIN ══ -->
+<div class="modal-bg" id="adminModal">
+  <div class="modal">
+    <h3>🔑 دخول المدير</h3>
+    <div class="form-group"><label>كلمة المرور</label>
+      <input type="password" id="adminPass" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter')doAdminLogin()"></div>
+    <div class="form-group"><label>🐙 GitHub Token (لحفظ بيانات الشجرة)</label>
+      <input type="password" id="adminGhToken" placeholder="ghp_..."
+        onkeydown="if(event.key==='Enter')doAdminLogin()">
+      <div style="font-size:10px;color:var(--text-dim);margin-top:4px">مطلوب فقط للإضافة والتعديل على الشجرة — اتركه فارغاً للعرض فقط</div>
+    </div>
+    <div class="form-group"><label>🔐 Master Key (لسجل الزوار وكلمات المرور المؤقتة)</label>
+      <input type="password" id="adminMasterKey" placeholder="$2a$10$..."
+        onkeydown="if(event.key==='Enter')doAdminLogin()">
+      <div style="font-size:10px;color:var(--text-dim);margin-top:4px">اختياري — مطلوب فقط لو حابب تستخدم سجل الزوار وكلمات المرور المؤقتة</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('adminModal')">إلغاء</button>
+      <button class="btn btn-gold" onclick="doAdminLogin()">دخول</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CHANGE PW ══ -->
+<div class="modal-bg" id="changePwModal">
+  <div class="modal">
+    <h3>🔒 تغيير كلمة المرور</h3>
+    <div class="form-group"><label>الحالية</label><input type="password" id="oldPw"></div>
+    <div class="form-group"><label>الجديدة</label><input type="password" id="newPw"></div>
+    <div class="form-group"><label>تأكيد الجديدة</label><input type="password" id="newPw2"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('changePwModal')">إلغاء</button>
+      <button class="btn btn-gold" onclick="doChangePw()">تغيير</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ HELP MODAL ══ -->
+<div class="modal-bg" id="helpModal">
+  <div class="modal" style="width:520px;max-width:96vw;max-height:82vh;display:flex;flex-direction:column">
+    <h3>❓ إرشادات استخدام شجرة العائلة</h3>
+    <div style="flex:1;overflow-y:auto;font-size:13px;line-height:2;color:var(--text);padding-left:4px">
+
+      <div style="font-weight:700;color:var(--gold);margin:10px 0 6px">🔍 التصفح والبحث</div>
+      <div style="color:var(--text-dim)">
+        • ابحث باسم الشخص في خانة البحث أعلى الصفحة، ثم اضغط على النتيجة للانتقال إليه مباشرة.<br>
+        • اضغط ضغطاً مطولاً على أي اسم لرؤية سلسلة أجداده كاملة.<br>
+        • استخدم إصبعين للتكبير والتصغير (Pinch)، وإصبعاً واحداً للتحرك بحرية في الشجرة.<br>
+        • على كل شخص أزرار صغيرة: ↑ للأب، ↓ للأبناء، ◀▶ للإخوة البعيدين — لتسهيل التنقل.<br>
+        • زر 🎯 يعيد توسيط الشجرة في أي وقت إذا ضعت داخلها.<br>
+        • زر 🌙/☀️ يبدّل بين المظهر الداكن والفاتح.
+      </div>
+
+      <div style="font-weight:700;color:var(--gold);margin:14px 0 6px">📤 التصدير</div>
+      <div style="color:var(--text-dim)">
+        • اضغط زر "تصدير" لحفظ صورة من الشجرة.<br>
+        • يمكنك اختيار: الشجرة كاملة، أو نطاق جزئي (أجداد وأبناء، كل الذرية، العائلة المباشرة...).<br>
+        • صيغ الحفظ المتاحة: PNG، JPG، SVG (متجه عالي الجودة)، وJSON (نسخة احتياطية كاملة من البيانات).
+      </div>
+
+    </div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn btn-gold" onclick="closeModal('helpModal')">فهمت، إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ VISITORS MODAL ══ -->
+<div class="modal-bg" id="visitorsModal">
+  <div class="modal" style="width:480px;max-width:96vw;max-height:80vh;display:flex;flex-direction:column">
+    <h3>👁️ سجل الزوار</h3>
+    <div id="visitorsStats" style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap"></div>
+    <div id="visitorsList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+    <div class="modal-actions" style="margin-top:12px">
+      <button class="btn btn-outline" onclick="closeModal('visitorsModal')">إغلاق</button>
+      <button class="btn btn-danger" onclick="clearVisitors()">🗑️ مسح السجل</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DELETE CONFIRM ══ -->
+<div class="modal-bg" id="deleteModal">
+  <div class="modal">
+    <h3 id="deleteModalTitle">⚠️ تأكيد الحذف</h3>
+    <div id="deleteModalBody" style="text-align:center;margin-bottom:14px;font-size:13px"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('deleteModal')">إلغاء</button>
+      <button class="btn btn-danger" id="deleteConfirmBtn" onclick="confirmDelete()">حذف</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ JSONBIN SETUP ══ -->
+<div class="modal-bg" id="binSetupModal">
+  <div class="modal">
+    <h3>☁️ إعداد التخزين السحابي</h3>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.7">
+      هذه النسخة تخزّن بيانات الشجرة على <strong style="color:var(--gold)">GitHub</strong> (مستودع: <code style="background:#111;padding:1px 4px;border-radius:3px">kullabqusai-rgb/Kullab_Family</code>) — لا يحتاج إعداد هنا.<br>
+      الإعدادات بالأسفل خاصة فقط بـ <strong style="color:var(--gold)">سجل الزوار وكلمات المرور المؤقتة</strong> (اختياري، عبر JSONBin.io).
+    </p>
+    <div class="form-group"><label>🔑 Master Key</label>
+      <input type="password" id="binMasterKey" placeholder="$2a$10$..."></div>
+    <div class="form-group"><label>📦 Bin ID — الإعدادات والكلمات المؤقتة</label>
+      <input type="text" id="binSettingsId" placeholder="64def456..."></div>
+    <details style="margin-bottom:12px">
+      <summary style="cursor:pointer;color:var(--gold);font-size:12px;font-weight:600">📖 طريقة الإعداد</summary>
+      <div style="font-size:11px;color:var(--text-dim);line-height:1.9;margin-top:8px;padding:10px;background:var(--surface2);border-radius:8px">
+        1. سجّل مجاناً على <strong style="color:var(--gold-light)">jsonbin.io</strong><br>
+        2. API Keys ← انسخ <strong>Master Key</strong><br>
+        3. أنشئ Bin → <code style="background:#111;padding:1px 4px;border-radius:3px">{"tempPws":[]}</code> → انسخ ID<br>
+        4. في إعدادات الـ Bin → اجعل <strong>Private: OFF</strong><br>
+        <br>
+        ملاحظة: حفظ بيانات الشجرة نفسها يتم عبر <strong style="color:var(--gold-light)">GitHub Token</strong> من نافذة دخول المدير، وليس من هنا.
+      </div>
+    </details>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('binSetupModal')">إلغاء</button>
+      <button class="btn btn-gold" onclick="saveBinConfig()">حفظ وتحميل</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TEMP PASSWORDS ══ -->
+<div class="modal-bg" id="tempPwModal">
+  <div class="modal modal-wide">
+    <h3>🗝️ الصلاحيات المؤقتة</h3>
+    <div style="display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap">
+      <input type="text" id="tpLabel" placeholder="الاسم / الوصف"
+        style="flex:1;min-width:110px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:12px;outline:none">
+      <input type="text" id="tpPass" placeholder="كلمة المرور"
+        style="flex:1;min-width:110px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:12px;outline:none">
+      <select id="tpExpiry"
+        style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-family:'Tajawal',sans-serif;font-size:12px;outline:none">
+        <option value="0">بدون انتهاء</option>
+        <option value="1">يوم</option>
+        <option value="3">3 أيام</option>
+        <option value="7">أسبوع</option>
+        <option value="30">شهر</option>
+      </select>
+      <button class="btn btn-gold" onclick="addTempPass()">+ إضافة</button>
+    </div>
+    <div style="max-height:260px;overflow-y:auto;border-radius:9px;border:1px solid var(--border)">
+      <table class="tp-table">
+        <thead><tr><th>الاسم</th><th>كلمة المرور</th><th>الانتهاء</th><th>الحالة</th><th></th></tr></thead>
+        <tbody id="tpTableBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:16px">لا توجد كلمات مرور مؤقتة</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-actions"><button class="btn btn-outline" onclick="closeModal('tempPwModal')">إغلاق</button></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════
+let nodes        = {};
+let isAdmin      = false;
+let isTempUser   = false;
+let adminPass    = 'ecde979e3bb2f03d7af67d91a143a0da676e2bf365fb64d8c5563d70f0e84787'; // SHA-256
+let tempPasswords= [];
+let editingId    = null;
+let editingParentId = null;
+let deleteTargetId  = null;
+let nextId       = 1;
+
+const NODE_W = 160, NODE_H = 140;
+const H_GAP  = 50,  V_GAP  = 90;
+
+// ══════════════════════════════════════════════════
+//  JSONBIN CONFIG  (saved in localStorage — only config, not data)
+// ══════════════════════════════════════════════════
+const CFG_KEY = 'ftree_cfg';
+const BIN_BASE = 'https://api.jsonbin.io/v3/b';
+let binMasterKey='';  // فقط لسجل الزوار وكلمات المرور المؤقتة (JSONBin) — لا يُخزَّن في الكود
+let binReadKey='$2a$10$gHi821O7wSvpjKS3fGt4De7JVpXsXl3OgNI9ssOjtMjdzC7e2bDWi'; // للقراءة فقط (عام) — لسجل الزوار فقط
+let binSettingsId='6a2ddbd1da38895dfebc27bc';
+let binVisitorsId='6a4258fada38895dfe0f93f7';
+
+// ══════════════════════════════════════════════════
+//  GITHUB CONFIG  (بيانات الشجرة الأساسية مخزّنة هنا بدل JSONBin)
+// ══════════════════════════════════════════════════
+const GH_OWNER  = 'kullabqusai-rgb';
+const GH_REPO   = 'Kullab_Family';
+const GH_BRANCH = 'main';
+const GH_PATH   = 'family-tree-data.json';
+const GH_API    = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
+const GH_RAW    = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${GH_PATH}`;
+let ghToken=''; // يُدخله المدير فقط عند تسجيل الدخول — لا يُخزَّن في الكود
+
+function loadBinConfig(){
+  // المفاتيح مدمجة في الكود مباشرة
+}
+function saveBinConfig(){
+  const mk =document.getElementById('binMasterKey').value.trim();
+  const sid=document.getElementById('binSettingsId').value.trim();
+  if(!mk||!sid){toast('⚠️ الرجاء تعبئة جميع الحقول');return;}
+  localStorage.setItem(CFG_KEY,JSON.stringify({mk,sid}));
+  binMasterKey=mk; binSettingsId=sid;
+  closeModal('binSetupModal');
+  toast('✅ تم الحفظ — جاري التحميل...');
+  loadFromCloud();
+}
+// يُستخدم فقط لسجل الزوار وكلمات المرور المؤقتة (JSONBin) — بيانات الشجرة منفصلة تماماً وتُقرأ من GitHub دائماً
+function isCloudOK(){ return (binMasterKey||binReadKey)&&binSettingsId; }
+
+// ══════════════════════════════════════════════════
+//  CLOUD  READ / WRITE
+// ══════════════════════════════════════════════════
+async function loadFromCloud(){
+  bar(true);
+  try{
+    // بيانات الشجرة: تُقرأ دائماً من GitHub (ملف عام، لا حاجة لأي مفتاح)
+    const r1=await fetch(`${GH_RAW}?_=${Date.now()}`); // كسر الكاش لضمان أحدث نسخة
+    if(r1.ok){
+      const d=await r1.json();
+      let payload=d;
+      // دعم الصيغة المضغوطة الجديدة (_z) مع الحفاظ على القدرة على قراءة الصيغة القديمة غير المضغوطة
+      if(d && typeof d._z === 'string'){
+        try{
+          const decompressed = LZString.decompressFromBase64(d._z);
+          if(decompressed){ payload = JSON.parse(decompressed); }
+          else { throw new Error('فشل فك الضغط'); }
+        }catch(e){
+          console.error('فشل فك ضغط البيانات:',e);
+          toast('❌ خطأ في قراءة البيانات المضغوطة — لم يتم تعديل أي شيء');
+          payload = {nodes:nodes,nextId:nextId}; // لا نلمس البيانات الحالية في الذاكرة عند الفشل
+        }
+      }
+      nodes=payload.nodes||{}; nextId=payload.nextId||1;
+    }
+    // سجل الزوار وكلمات المرور المؤقتة: تبقى على JSONBin كما هي
+    if(isCloudOK()){
+      const headers = binMasterKey ? {'X-Master-Key': binMasterKey} : {'X-Access-Key': binReadKey};
+      const r2=await fetch(`${BIN_BASE}/${binSettingsId}/latest`,{headers});
+      if(r2.ok){const j=await r2.json();tempPasswords=(j.record||{}).tempPws||[];}
+    }
+  }catch(e){toast('⚠️ تعذّر الاتصال — تحقق من الإنترنت');}
+  bar(false); render();
+  setTimeout(()=>{ window._userHasPanned=false; window._centerTree&&window._centerTree(); }, 400);
+}
+
+let _saveTimer=null;
+async function save(){
+  if(!ghToken){ toast('⚠️ الحفظ يتطلب دخول المدير بـ GitHub Token'); return; }
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(async()=>{
+    bar(true);
+    try{
+      const rawJson = JSON.stringify({nodes,nextId});
+      const compressed = LZString.compressToBase64(rawJson);
+      // تحقق أمان: نفك الضغط فوراً ونتأكد إنه يطابق الأصل قبل الإرسال — لو في أي خلل، نوقف ولا نرسل شيء
+      const verify = LZString.decompressFromBase64(compressed);
+      if(verify !== rawJson){
+        toast('❌ تم إيقاف الحفظ: فشل التحقق من سلامة الضغط — بياناتك الحالية لم تتأثر');
+        console.error('Compression verification failed — aborting save to protect data');
+        bar(false);
+        return;
+      }
+      const contentJson = JSON.stringify({_z:compressed});
+      const contentBase64 = btoa(contentJson); // ascii آمن (ناتج LZString base64 + علامات JSON فقط)
+
+      // الخطوة 1: نجلب sha الحالي للملف (مطلوب من GitHub لتحديث ملف موجود)
+      let sha;
+      try{
+        const getRes = await fetch(`${GH_API}?ref=${GH_BRANCH}`,{
+          headers:{'Authorization':'token '+ghToken,'Accept':'application/vnd.github+json'}
+        });
+        if(getRes.ok){ const gj=await getRes.json(); sha=gj.sha; }
+      }catch(e){ /* لو الملف مش موجود أصلاً (أول حفظ)، نكمل بدون sha */ }
+
+      // الخطوة 2: نحفظ الملف (تحديث أو إنشاء أول نسخة)
+      const putRes = await fetch(GH_API,{
+        method:'PUT',
+        headers:{'Authorization':'token '+ghToken,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
+        body: JSON.stringify({
+          message: 'تحديث بيانات الشجرة - '+new Date().toLocaleString('ar-EG'),
+          content: contentBase64,
+          sha: sha,
+          branch: GH_BRANCH
+        })
+      });
+      if(!putRes.ok){
+        const errTxt=await putRes.text().catch(()=>'');
+        toast('❌ فشل الحفظ: '+putRes.status+' — تحقق من GitHub Token');
+        console.error('Save failed:',putRes.status,errTxt);
+      } else {
+        toast('✅ تم الحفظ على GitHub');
+      }
+    }catch(e){toast('❌ فشل الحفظ: تعذّر الاتصال');console.error(e);}
+    bar(false);
+  },800);
+}
+
+async function saveTempPasswords(){
+  if(!isCloudOK()) return;
+  try{
+    await fetch(`${BIN_BASE}/${binSettingsId}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':binMasterKey},
+      body:JSON.stringify({tempPws:tempPasswords})
+    });
+  }catch(e){toast('⚠️ فشل حفظ الإعدادات');}
+}
+
+function bar(on){
+  let el=document.getElementById('_bar');
+  if(!el){
+    el=document.createElement('div'); el.id='_bar';
+    el.style.cssText='position:fixed;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold),var(--gold-light),var(--gold));background-size:200%;animation:_sh 1.2s linear infinite;z-index:9999;transition:opacity .3s;';
+    document.head.insertAdjacentHTML('beforeend','<style>@keyframes _sh{0%{background-position:200% 0}100%{background-position:-200% 0}}</style>');
+    document.body.prepend(el);
+  }
+  el.style.opacity=on?'1':'0';
+}
+
+// ══════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════
+window.onload=()=>{
+  loadBinConfig();
+  loadFromCloud(); // بيانات الشجرة عامة على GitHub وتُحمَّل دائماً، بغض النظر عن إعدادات JSONBin
+  setTimeout(initOrders, 800);
+  setTimeout(recordVisit, 3000);
+};
+
+// ══════════════════════════════════════════════════
+//  AUTO LAYOUT  — always recalculate from scratch
+// ══════════════════════════════════════════════════
+function autoLayout(){
+  const children={};
+  const roots=[];
+  Object.values(nodes).forEach(n=>{
+    if(!n.parentId) roots.push(n.id);
+    else{ (children[n.parentId]=children[n.parentId]||[]).push(n.id); }
+  });
+  // رتب الأبناء حسب order
+  Object.keys(children).forEach(pid=>{
+    children[pid].sort((a,b)=>(nodes[a].order||0)-(nodes[b].order||0));
+  });
+
+  function spanOf(id){
+    const kids=children[id]||[];
+    if(!kids.length) return 1;
+    return kids.reduce((s,k)=>s+spanOf(k),0);
+  }
+
+  function place(id,depth,colStart){
+    const kids=children[id]||[];
+    if(!kids.length){
+      nodes[id].x = colStart*(NODE_W+H_GAP)+60;
+      nodes[id].y = depth*(NODE_H+V_GAP)+60;
+      return;
+    }
+    let cur=colStart;
+    kids.forEach(k=>{ place(k,depth+1,cur); cur+=spanOf(k); });
+    const first=nodes[kids[0]].x;
+    const last =nodes[kids[kids.length-1]].x;
+    nodes[id].x=(first+last)/2;
+    nodes[id].y=depth*(NODE_H+V_GAP)+60;
+  }
+
+  let col=0;
+  roots.forEach(rid=>{ place(rid,0,col); col+=spanOf(rid); });
+}
+
+// ══════════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════════
+function render(){
+  const canvas=document.getElementById('tree-canvas');
+  canvas.querySelectorAll('.node').forEach(n=>n.remove());
+
+  const ids=Object.keys(nodes);
+  document.getElementById('emptyState').style.display=ids.length?'none':'block';
+  document.getElementById('emptyHint').style.display=
+    (ids.length===0&&!isAdmin&&!isTempUser)?'block':'none';
+
+  updateToolbar();
+
+  if(!ids.length) return;
+
+  autoLayout();
+
+  // Canvas size
+  let maxX=0,maxY=0;
+  ids.forEach(id=>{ maxX=Math.max(maxX,nodes[id].x+NODE_W+40); maxY=Math.max(maxY,nodes[id].y+NODE_H+40); });
+  canvas.style.width =maxX+'px';
+  canvas.style.height=Math.max(maxY,window.innerHeight-150)+400+'px';
+  document.getElementById('lines').setAttribute('width', maxX);
+  document.getElementById('lines').setAttribute('height',Math.max(maxY,window.innerHeight-150));
+
+  ids.forEach(id=>drawNode(id));
+  drawLines();
+}
+
+function updateToolbar(){
+  const tb=document.getElementById('toolbar');
+  const adminBtns=(isAdmin||isTempUser)?`
+    <button class="btn btn-gold" id="addRootBtn" onclick="openAddRoot()" style="${Object.keys(nodes).length?'display:none':''}">+ الجد الأول</button>
+  `:'';
+  tb.innerHTML=`
+    ${adminBtns}
+    <button class="btn btn-blue" onclick="openExportModal()">📤 تصدير</button>
+    <button class="btn btn-outline" onclick="window._userHasPanned=false;window._centerTree&&window._centerTree()" title="توسيط الشجرة">🎯</button>
+    <button class="btn btn-outline" id="themeBtn" onclick="toggleTheme()" title="تبديل المظهر">🌙</button>
+    ${isAdmin?`<button class="btn btn-outline" onclick="openVisitors()" title="سجل الزوار">👁️</button>`:''}
+    <span style="font-size:13px;color:var(--text-dim);padding:0 6px">👥 <strong style="color:var(--gold)">${Object.keys(nodes).length}</strong> فرد</span>
+  `;
+  const tb2=document.getElementById('themeBtn');
+  if(tb2) tb2.textContent=document.documentElement.classList.contains('light-theme')?'☀️':'🌙';
+}
+
+function drawNode(id){
+  const n=nodes[id];
+  const canvas=document.getElementById('tree-canvas');
+  const div=document.createElement('div');
+  div.className='node gender-'+n.gender+(n.parentId?'':' root-node');
+  div.id='node-'+id;
+  div.style.left=n.x+'px';
+  div.style.top =n.y+'px';
+
+  const emoji=n.gender==='f'?'👩':'👨';
+  const canEdit=isAdmin||isTempUser;
+  const addBtn=canEdit?`<button class="node-btn node-btn-add" onclick="openAddChild('${id}')">+ ابن/بنت</button>`:'';
+  const addParentBtn=(canEdit&&!n.parentId)?`<button class="node-btn node-btn-parent" onclick="openAddParent('${id}')">+ أب</button>`:'';
+  const editBtn=canEdit?`<button class="node-btn node-btn-edit" onclick="openEdit('${id}')">✏️</button>`:'';
+  const delBtn =canEdit?`<button class="node-btn node-btn-del"  onclick="openDelete('${id}')">🗑️</button>`:'';
+
+  // أزرار التنقل بين الإخوة
+  let sibNavHTML='';
+  if(n.parentId){
+    const siblings=Object.values(nodes)
+      .filter(s=>s.parentId===n.parentId)
+      .sort((a,b)=>a.x-b.x);
+    const idx=siblings.findIndex(s=>s.id===id);
+    const DIST_THRESHOLD = NODE_W * 3;
+
+    const prevSib = idx>0 ? siblings[idx-1] : null;
+    const nextSib = idx<siblings.length-1 ? siblings[idx+1] : null;
+
+    const prevFar = prevSib && (n.x - prevSib.x) > DIST_THRESHOLD;
+    const nextFar = nextSib && (nextSib.x - n.x) > DIST_THRESHOLD;
+
+    const upBtn = `<button class="sibnav-btn sibnav-up" onclick="navToSibling('${n.parentId}')" title="الأب">↑</button>`;
+    const prevBtn = prevFar ? `<button class="sibnav-btn" onclick="navToSibling('${prevSib.id}')" title="الأخ السابق">◀</button>` : '';
+    const nextBtn = nextFar ? `<button class="sibnav-btn" onclick="navToSibling('${nextSib.id}')" title="الأخ التالي">▶</button>` : '';
+
+    sibNavHTML=`
+      <div class="sibling-nav nav-up">${upBtn}</div>
+      ${nextFar?`<div class="sibling-nav nav-right">${nextBtn}</div>`:''}
+      ${prevFar?`<div class="sibling-nav nav-left">${prevBtn}</div>`:''}`;
+  }
+
+  // زر ↓ لكل أب له أبناء
+  const myChildren = Object.values(nodes).filter(c=>c.parentId===id).sort((a,b)=>a.x-b.x);
+  if(myChildren.length){
+    sibNavHTML += `<div class="sibling-nav nav-down"><button class="sibnav-btn sibnav-down" onclick="navDown('${id}')" title="الابن">↓</button></div>`;
+  }
+
+  div.innerHTML=`
+    ${sibNavHTML}
+    <div class="node-avatar">${emoji}</div>
+    <div class="node-name">${n.name}</div>
+    <div class="node-info">${n.birth?'📅 '+n.birth:''}${n.note?(n.birth?' · ':'')+n.note:''}</div>
+    <div class="node-actions">${addParentBtn}${addBtn}${editBtn}${delBtn}</div>`;
+
+  canvas.appendChild(div);
+  attachLongPress(div, id);
+}
+
+function drawLines(){
+  const svg=document.getElementById('lines');
+  svg.innerHTML='';
+  Object.values(nodes).forEach(n=>{
+    if(!n.parentId) return;
+    const p=nodes[n.parentId]; if(!p) return;
+    const px=p.x+NODE_W/2, py=p.y+NODE_H;
+    const cx=n.x+NODE_W/2, cy=n.y;
+    const mid=(py+cy)/2;
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',`M${px},${py} C${px},${mid} ${cx},${mid} ${cx},${cy}`);
+    path.setAttribute('stroke','#c9962a'); path.setAttribute('stroke-width','2');
+    path.setAttribute('fill','none'); path.setAttribute('stroke-linecap','round');
+    path.setAttribute('opacity','0.55');
+    svg.appendChild(path);
+    const arr=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    arr.setAttribute('points',`${cx},${cy} ${cx-5},${cy-8} ${cx+5},${cy-8}`);
+    arr.setAttribute('fill','#c9962a'); arr.setAttribute('opacity','0.7');
+    svg.appendChild(arr);
+  });
+  const byParent={};
+  Object.values(nodes).forEach(n=>{ if(n.parentId)(byParent[n.parentId]=byParent[n.parentId]||[]).push(n); });
+  Object.values(byParent).forEach(siblings=>{
+    if(siblings.length<2) return;
+    const ys=siblings.map(s=>s.y);
+    if(!ys.every(y=>y===ys[0])) return;
+    const xs=siblings.map(s=>s.x+NODE_W/2).sort((a,b)=>a-b);
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',xs[0]); line.setAttribute('y1',ys[0]-20);
+    line.setAttribute('x2',xs[xs.length-1]); line.setAttribute('y2',ys[0]-20);
+    line.setAttribute('stroke','#c9962a'); line.setAttribute('stroke-width','1.5');
+    line.setAttribute('opacity','0.35');
+    svg.appendChild(line);
+  });
+}
+
+// ══════════════════════════════════════════════════
+//  MODAL HELPERS
+// ══════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click',e=>{ if(e.target===bg) bg.classList.remove('open'); });
+});
+
+// ══════════════════════════════════════════════════
+//  ADD / EDIT / DELETE
+// ══════════════════════════════════════════════════
+function openAddRoot(){
+  if(!isAdmin&&!isTempUser) return;
+  editingId=null; editingParentId=null; clearPF();
+  document.getElementById('personModalTitle').textContent='إضافة الجد الأول';
+  openModal('personModal');
+}
+function openAddChild(parentId){
+  if(!isAdmin&&!isTempUser) return;
+  editingId=null; editingParentId=parentId; clearPF();
+  document.getElementById('personModalTitle').textContent='إضافة ابن/بنت لـ '+nodes[parentId].name;
+  openModal('personModal');
+}
+function openAddParent(childId){
+  if(!isAdmin&&!isTempUser) return;
+  // نحفظ الـ childId في editingParentId بشكل خاص
+  editingId=null; editingParentId=null; clearPF();
+  document.getElementById('personModalTitle').textContent='إضافة أب لـ '+nodes[childId].name;
+  // نخزن الـ childId مؤقتاً على الـ form
+  document.getElementById('personModal').dataset.addParentFor=childId;
+  openModal('personModal');
+}
+function openEdit(id){
+  if(!isAdmin&&!isTempUser) return;
+  editingId=id; editingParentId=null;
+  const n=nodes[id];
+  document.getElementById('pName').value  =n.name;
+  document.getElementById('pGender').value=n.gender;
+  document.getElementById('pBirth').value =n.birth||'';
+  document.getElementById('pNote').value  =n.note ||'';
+  document.getElementById('personModalTitle').textContent='تعديل: '+n.name;
+
+  // أظهر أزرار الترتيب إذا له إخوة
+  const reorderDiv=document.getElementById('reorderBtns');
+  if(n.parentId){
+    const siblings=Object.values(nodes).filter(s=>s.parentId===n.parentId).sort((a,b)=>(a.order||0)-(b.order||0));
+    const idx=siblings.findIndex(s=>s.id===id);
+    reorderDiv.style.display='block';
+    document.getElementById('reorderPos').textContent=`الترتيب الحالي: ${idx+1} من ${siblings.length}`;
+  } else {
+    reorderDiv.style.display='none';
+  }
+  openModal('personModal');
+}
+function clearPF(){
+  ['pName','pBirth','pNote'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('pGender').value='m';
+  delete document.getElementById('personModal').dataset.addParentFor;
+}
+function savePerson(){
+  const name=document.getElementById('pName').value.trim();
+  if(!name){toast('⚠️ الاسم مطلوب');return;}
+
+  const modal=document.getElementById('personModal');
+  const addParentFor=modal.dataset.addParentFor||'';
+
+  if(editingId){
+    nodes[editingId].name  =name;
+    nodes[editingId].gender=document.getElementById('pGender').value;
+    nodes[editingId].birth =document.getElementById('pBirth').value;
+    nodes[editingId].note  =document.getElementById('pNote').value.trim();
+  } else if(addParentFor && nodes[addParentFor]){
+    // أنشئ الأب الجديد بدون parentId (يصبح الجذر)
+    const newId='n'+(nextId++);
+    nodes[newId]={id:newId, name, gender:document.getElementById('pGender').value,
+      birth:document.getElementById('pBirth').value,
+      note:document.getElementById('pNote').value.trim(),
+      parentId:null, x:0, y:0};
+    // اربط الجذر القديم بالأب الجديد
+    nodes[addParentFor].parentId=newId;
+    delete modal.dataset.addParentFor;
+  } else {
+    const id='n'+(nextId++);
+    // order = آخر ترتيب بين الإخوة + 1
+    const sibOrder=Object.values(nodes).filter(n=>n.parentId===editingParentId).map(n=>n.order||0);
+    const newOrder=sibOrder.length ? Math.max(...sibOrder)+1 : 0;
+    nodes[id]={id,name,gender:document.getElementById('pGender').value,
+      birth:document.getElementById('pBirth').value,
+      note:document.getElementById('pNote').value.trim(),
+      parentId:editingParentId,x:0,y:0,order:newOrder};
+  }
+  save(); closeModal('personModal'); render();
+}
+function countSubtree(id){
+  // يحسب الشخص + كل ذريته
+  let count=1;
+  Object.values(nodes).forEach(n=>{ if(n.parentId===id) count+=countSubtree(n.id); });
+  return count;
+}
+function openDelete(id){
+  if(!isAdmin&&!isTempUser) return;
+  const n=nodes[id];
+  const hasChildren=Object.values(nodes).some(c=>c.parentId===id);
+  const total=countSubtree(id)-1; // عدد الأبناء والأحفاد بدون الشخص نفسه
+
+  const title=document.getElementById('deleteModalTitle');
+  const body=document.getElementById('deleteModalBody');
+  const btn=document.getElementById('deleteConfirmBtn');
+
+  if(hasChildren){
+    // ❌ منع الحذف
+    title.textContent='🚫 لا يمكن الحذف';
+    body.innerHTML=`
+      <p style="color:#e74c3c;font-size:14px;font-weight:700;margin-bottom:8px">
+        لا يمكن حذف <strong style="color:var(--gold)">${n.name}</strong>
+      </p>
+      <p style="color:var(--text-dim);font-size:12px;line-height:1.8">
+        هذا الشخص له <strong style="color:#e8c84a">${total} فرد</strong> من الأبناء والأحفاد مرتبطين به.<br>
+        احذف أبناءه أولاً إن أردت حذفه.
+      </p>`;
+    btn.style.display='none';
+  } else {
+    // ✅ السماح بالحذف (ورقة فقط، لا أبناء)
+    title.textContent='⚠️ تأكيد الحذف';
+    body.innerHTML=`
+      <p style="color:var(--text-dim);font-size:13px;line-height:1.8">
+        هل تريد حذف<br>
+        <strong style="color:var(--gold);font-size:15px">${n.name}</strong>؟<br>
+        <span style="font-size:11px;color:#8a7a62">هذا الشخص ليس له أبناء، سيُحذف فقط.</span>
+      </p>`;
+    btn.style.display='';
+    deleteTargetId=id;
+  }
+  openModal('deleteModal');
+}
+function confirmDelete(){
+  if(!deleteTargetId) return;
+  // تحقق أخير — منع حذف من له أبناء
+  if(Object.values(nodes).some(c=>c.parentId===deleteTargetId)){
+    toast('🚫 لا يمكن حذف شخص له أبناء'); closeModal('deleteModal'); return;
+  }
+  delete nodes[deleteTargetId];
+  deleteTargetId=null;
+  save(); closeModal('deleteModal'); render(); toast('🗑️ تم الحذف');
+}
+
+// ══════════════════════════════════════════════════
+//  ADMIN AUTH
+// ══════════════════════════════════════════════════
+function openAdminLogin(){ openModal('adminModal'); }
+
+async function doAdminLogin(){
+  const pw=document.getElementById('adminPass').value.trim();
+  const mk=document.getElementById('adminMasterKey').value.trim();
+  const gt=document.getElementById('adminGhToken').value.trim();
+  document.getElementById('adminPass').value='';
+  document.getElementById('adminMasterKey').value='';
+  document.getElementById('adminGhToken').value='';
+
+  const hashBuffer=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(pw));
+  const hashHex=Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,"0")).join("");
+
+  if(hashHex===adminPass){
+    isAdmin=true; isTempUser=false;
+    if(mk) binMasterKey=mk; // لسجل الزوار وكلمات المرور المؤقتة فقط
+    if(gt) ghToken=gt; // لحفظ بيانات الشجرة على GitHub
+    closeModal('adminModal'); updateAdminUI();
+    toast(gt?'✅ مرحباً بك أيها المدير — صلاحية كاملة':'✅ مرحباً بك أيها المدير — عرض فقط');
+    return;
+  }
+  const now=Date.now();
+  const m=tempPasswords.find(tp=>tp.pass===pw&&(tp.expiry===0||tp.expiry>now));
+  if(m){
+    isAdmin=false; isTempUser=true;
+    if(mk) binMasterKey=mk;
+    if(gt) ghToken=gt;
+    closeModal('adminModal'); updateAdminUI(m.label);
+    toast('✅ مرحباً '+m.label);
+    return;
+  }
+  toast('❌ كلمة المرور خاطئة أو منتهية');
+}
+
+function updateAdminUI(tempLabel){
+  const ha=document.getElementById('headerActions');
+  const helpBtn=`<button class="btn btn-outline" onclick="openModal('helpModal')" title="إرشادات الاستخدام">❓ مساعدة</button>`;
+  if(isAdmin){
+    ha.innerHTML=`
+      ${helpBtn}
+      <span class="admin-badge">👑 مدير</span>
+      <button class="btn btn-outline" onclick="openModal('tempPwModal');renderTempTable()">🗝️ مؤقتة</button>
+      <button class="btn btn-outline" onclick="openModal('changePwModal')">🔒 كلمة المرور</button>
+      <button class="btn btn-outline" onclick="openModal('binSetupModal')">☁️ السحابة</button>
+      <button class="btn btn-danger" onclick="adminLogout()">خروج</button>`;
+  } else if(isTempUser){
+    ha.innerHTML=`
+      ${helpBtn}
+      <span class="temp-badge">🗝️ ${tempLabel||'مؤقت'}</span>
+      <button class="btn btn-danger" onclick="adminLogout()">خروج</button>`;
+  } else {
+    ha.innerHTML=`${helpBtn}<button class="btn btn-outline" onclick="openAdminLogin()">🔑 دخول المدير</button>`;
+  }
+  render();
+}
+
+function adminLogout(){ isAdmin=false; isTempUser=false; updateAdminUI(); toast('👋 تم الخروج'); }
+
+async function doChangePw(){
+  const o=document.getElementById('oldPw').value;
+  const n=document.getElementById('newPw').value;
+  const n2=document.getElementById('newPw2').value;
+  // تحقق من القديمة بالـ hash
+  const oldHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(o)))).map(b=>b.toString(16).padStart(2,'0')).join('');
+  if(oldHash!==adminPass){toast('❌ الحالية خاطئة');return;}
+  if(!n){toast('⚠️ أدخل كلمة جديدة');return;}
+  if(n!==n2){toast('⚠️ لا تتطابقان');return;}
+  // خزّن الـ hash الجديد
+  const newHash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(n)))).map(b=>b.toString(16).padStart(2,'0')).join('');
+  adminPass=newHash;
+  closeModal('changePwModal');
+  ['oldPw','newPw','newPw2'].forEach(i=>document.getElementById(i).value='');
+  toast('✅ تم تغيير كلمة المرور');
+}
+
+// ══════════════════════════════════════════════════
+//  TEMP PASSWORDS
+// ══════════════════════════════════════════════════
+async function addTempPass(){
+  const label=document.getElementById('tpLabel').value.trim();
+  const pass =document.getElementById('tpPass').value.trim();
+  const days =parseInt(document.getElementById('tpExpiry').value);
+  if(!label){toast('⚠️ أدخل اسماً');return;}
+  if(!pass) {toast('⚠️ أدخل كلمة المرور');return;}
+  // قارن بالـ hash لمنع استخدام كلمة المدير
+  const h=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pass)))).map(b=>b.toString(16).padStart(2,'0')).join('');
+  if(h===adminPass){toast('⚠️ لا يمكن استخدام كلمة المدير');return;}
+  const expiry=days===0?0:Date.now()+days*86400000;
+  tempPasswords.push({id:Date.now().toString(),label,pass,expiry});
+  saveTempPasswords(); renderTempTable();
+  document.getElementById('tpLabel').value='';
+  document.getElementById('tpPass').value='';
+  toast('✅ تمت الإضافة');
+}
+function deleteTempPass(id){
+  tempPasswords=tempPasswords.filter(tp=>tp.id!==id);
+  saveTempPasswords(); renderTempTable(); toast('🗑️ تم الحذف');
+}
+function renderTempTable(){
+  const tb=document.getElementById('tpTableBody');
+  if(!tempPasswords.length){
+    tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--text-dim);padding:14px">لا توجد كلمات مرور مؤقتة</td></tr>';
+    return;
+  }
+  const now=Date.now();
+  tb.innerHTML=tempPasswords.map(tp=>{
+    const ok=tp.expiry===0||tp.expiry>now;
+    const ex=tp.expiry===0?'بدون انتهاء':new Date(tp.expiry).toLocaleDateString('ar-EG',{day:'numeric',month:'short',year:'numeric'});
+    return `<tr>
+      <td>${tp.label}</td>
+      <td><span class="pw-code">${tp.pass}</span></td>
+      <td style="font-size:11px;color:var(--text-dim)">${ex}</td>
+      <td>${ok?'<span class="badge-active">✅ فعّالة</span>':'<span class="badge-expired">❌ منتهية</span>'}</td>
+      <td><button class="node-btn node-btn-del" onclick="deleteTempPass('${tp.id}')">🗑️</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════
+//  EXPORT IMAGE  — تحويل للمودال الجديد
+// ══════════════════════════════════════════════════
+async function exportImage(){ openExportModal(); }
+
+// ══════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════
+let _tt;
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ══════════════════════════════════════════════════
+//  SEARCH
+// ══════════════════════════════════════════════════
+
+/* بناء مسار الأجداد لأي شخص: ["شاكر","محمد","خالد"] */
+function getAncestorChain(id){
+  const chain=[];
+  let cur=id;
+  while(cur){
+    chain.unshift(nodes[cur].name);
+    cur=nodes[cur].parentId;
+  }
+  return chain;
+}
+
+/* مطابقة الاستعلام مع الشخص:
+   يتعامل مع الأسماء المركبة بذكاء
+   - "عبد الله" = شخص اسمه يحتوي "عبد الله"
+   - "محمد عبد الناصر" = شخص "محمد" وأبوه يحتوي "عبد الناصر" */
+function matchSearch(id, query){
+  const parts = query.trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return false;
+  
+  const chain = getAncestorChain(id); // [جد_أعلى, ..., أب, الشخص]
+  const reversed = [...chain].reverse(); // [الشخص, أبوه, جده, ...]
+  
+  let partIdx = 0;
+  let personIdx = 0;
+  
+  while(partIdx < parts.length && personIdx < reversed.length){
+    const person = reversed[personIdx];
+    
+    // محاولة 1: هل اسم الشخص يحتوي على الكلمة الحالية
+    if(person.includes(parts[partIdx])){
+      partIdx++;
+      continue;
+    }
+    
+    // محاولة 2: جرّب دمج الكلمات الحالية والتالية
+    let found = false;
+    for(let combineCount = 2; combineCount <= 3 && partIdx + combineCount <= parts.length; combineCount++){
+      const combined = parts.slice(partIdx, partIdx + combineCount).join(' ');
+      if(person.includes(combined)){
+        partIdx += combineCount;
+        found = true;
+        break;
+      }
+    }
+    
+    if(found){
+      personIdx++;
+      continue;
+    }
+    
+    // لم نجد مطابقة، انتقل للشخص التالي
+    personIdx++;
+  }
+  
+  // نجح إذا طابقنا جميع الأجزاء
+  return partIdx === parts.length;
+}
+
+let _searchTimer=null;
+function onSearchInput(){
+  clearTimeout(_searchTimer);
+  _searchTimer=setTimeout(()=>doSearch(),180);
+}
+
+function doSearch(){
+  const q=document.getElementById('searchInput').value.trim();
+  const resBox=document.getElementById('searchResults');
+  clearHighlight();
+  if(!q){ resBox.classList.remove('open'); resBox.innerHTML=''; return; }
+
+  const matches=Object.keys(nodes).filter(id=>matchSearch(id,q));
+  if(!matches.length){
+    resBox.innerHTML='<div class="sr-item" style="color:var(--text-dim)">لا توجد نتائج</div>';
+    resBox.classList.add('open');
+    return;
+  }
+
+  resBox.innerHTML=matches.slice(0,12).map(id=>{
+    const chain=getAncestorChain(id);
+    const name=chain[chain.length-1];
+    const ancestors=chain.slice(0,-1).reverse();
+    const path=ancestors.join(' ← ');
+    return `<div class="sr-item" onclick="focusNode('${id}')">
+      <div><strong>${name}</strong></div>
+      ${path?`<div class="sr-path" dir="rtl">${path}</div>`:''}
+    </div>`;
+  }).join('');
+  resBox.classList.add('open');
+}
+
+function onSearchKey(e){
+  if(e.key==='Escape') clearSearch();
+}
+
+let _lastFocusedId = null;
+
+function focusNode(id){
+  _lastFocusedId = id;
+  document.getElementById('searchResults').classList.remove('open');
+  clearHighlight();
+
+  const n=nodes[id];
+  if(!n) return;
+
+  // تضيء العقدة
+  const nodeEl=document.getElementById('node-'+id);
+  if(nodeEl) nodeEl.classList.add('search-highlight');
+
+  // إطار مرئي حول العقدة
+  const frame=document.getElementById('focusFrame');
+  frame.style.display='block';
+  frame.style.left=(n.x-8)+'px';
+  frame.style.top =(n.y-8)+'px';
+  frame.style.width=(NODE_W+16)+'px';
+  frame.style.height=(NODE_H+16)+'px';
+  setTimeout(()=>{ if(frame) frame.style.display='none'; },3500);
+
+  // تحريك الـ pan نحو العقدة
+  const wrap=document.getElementById('canvas-wrap');
+  if(!wrap) return;
+  const ww=wrap.offsetWidth, wh=wrap.offsetHeight;
+  const nodeCX = n.x + NODE_W/2;
+  const nodeCY = n.y + NODE_H/2;
+  window._panTo(nodeCX, nodeCY, ww, wh);
+}
+
+function reorderNode(dir){
+  const id=editingId; if(!id||!nodes[id]||!nodes[id].parentId) return;
+  const n=nodes[id];
+  const siblings=Object.values(nodes)
+    .filter(s=>s.parentId===n.parentId)
+    .sort((a,b)=>(a.order??0)-(b.order??0));
+  const idx=siblings.findIndex(s=>s.id===id);
+
+  const swapIdx = dir==='left' ? idx-1 : idx+1;
+  if(swapIdx<0||swapIdx>=siblings.length){ toast('⚠️ لا يمكن التحريك'); return; }
+
+  // تبادل الـ order بشكل صحيح
+  const other=siblings[swapIdx];
+  const tmpOrder = n.order??idx;
+  n.order = other.order??swapIdx;
+  other.order = tmpOrder;
+
+  // تطبيع 0,1,2,3...
+  siblings.sort((a,b)=>(a.order??0)-(b.order??0));
+  siblings.forEach((s,i)=>{ nodes[s.id].order=i; });
+
+  const newIdx=siblings.findIndex(s=>s.id===id);
+  document.getElementById('reorderPos').textContent=`الترتيب الحالي: ${newIdx+1} من ${siblings.length}`;
+  save(); render();
+  toast(`✅ ${dir==='left'?'تم التقديم':'تم التأخير'}`);
+}
+
+function initOrders(){
+  // أضف order فقط للأشخاص الذين ليس لهم order بعد — لا نمس من لديه order
+  let changed=false;
+  const byParent={};
+  Object.values(nodes).forEach(n=>{
+    if(!n.parentId) return;
+    (byParent[n.parentId]=byParent[n.parentId]||[]).push(n);
+  });
+  Object.values(byParent).forEach(siblings=>{
+    // الأشخاص الذين لديهم order بالفعل
+    const maxExisting = siblings
+      .filter(s=>s.order!==undefined&&s.order!==null)
+      .reduce((m,s)=>Math.max(m,s.order),-1);
+    let next=maxExisting+1;
+    // رتب من ليس لديه order حسب رقم id فقط
+    siblings
+      .filter(s=>s.order===undefined||s.order===null)
+      .sort((a,b)=>parseInt(a.id.replace('n',''))-parseInt(b.id.replace('n','')))
+      .forEach(s=>{ s.order=next++; changed=true; });
+  });
+  if(changed) save();
+  // لا نستدعي render() لتجنب أي تأثير جانبي
+}
+
+function navDown(parentId){
+  const children = Object.values(nodes)
+    .filter(c=>c.parentId===parentId)
+    .sort((a,b)=>a.x-b.x);
+  if(!children.length) return;
+
+  // هل يوجد شخص محدد في البحث؟
+  const searchVal = document.getElementById('searchInput').value.trim();
+  let targetId = null;
+
+  if(searchVal && _lastFocusedId && nodes[_lastFocusedId]){
+    const focused = nodes[_lastFocusedId];
+    // هل الشخص المبحوث ابن مباشر لهذا الأب؟
+    if(focused.parentId === parentId){
+      targetId = focused.id; // انزل للشخص المبحوث
+    }
+    // إذا لا → تجاهل البحث وانزل للابن الأول
+  }
+
+  if(!targetId) targetId = children[0].id;
+  navToSibling(targetId);
+}
+
+function navToSibling(id){
+  const n=nodes[id]; if(!n) return;
+  _lastFocusedId=id;
+  // انتقل للعقدة
+  const wrap=document.getElementById('canvas-wrap');
+  if(!wrap) return;
+  const ww=wrap.clientWidth||window.innerWidth;
+  const wh=wrap.clientHeight||(window.innerHeight-150);
+  window._panTo(n.x+NODE_W/2, n.y+NODE_H/2, ww, wh);
+  // هايلايت مؤقت
+  document.querySelectorAll('.node').forEach(el=>el.classList.remove('search-highlight'));
+  const el=document.getElementById('node-'+id);
+  if(el){ el.classList.add('search-highlight'); setTimeout(()=>el.classList.remove('search-highlight'),1500); }
+}
+
+// ══════════════════════════════════════════════════
+//  VISITORS TRACKING
+// ══════════════════════════════════════════════════
+const VISITORS_KEY='ftree_visitors';
+
+async function recordVisit(){
+  try{
+    let info={ip:'—',country:'—',city:'—',org:'—'};
+    try{
+      const r=await fetch('https://ipapi.co/json/');
+      if(r.ok){const d=await r.json();info={ip:d.ip||'—',country:d.country_name||'—',city:d.city||'—',org:d.org||'—'};}
+    }catch(_){}
+    const visit={
+      time:new Date().toISOString(),
+      ip:info.ip, country:info.country, city:info.city, org:info.org,
+      device:/Mobile|Android|iPhone/i.test(navigator.userAgent)?'📱 موبايل':'💻 كمبيوتر',
+      browser:getBrowser()
+    };
+    // احفظ محلياً
+    const visits=JSON.parse(localStorage.getItem(VISITORS_KEY)||'[]');
+    visits.unshift(visit);
+    if(visits.length>200) visits.splice(200);
+    localStorage.setItem(VISITORS_KEY,JSON.stringify(visits));
+    // احفظ في bin الزوار المنفصل
+    if(binMasterKey&&binVisitorsId){
+      try{
+        const r2=await fetch(`${BIN_BASE}/${binVisitorsId}/latest`,{headers:{'X-Master-Key':binMasterKey}});
+        const rec=(r2.ok?(await r2.json()).record:null)||{visits:[]};
+        rec.visits=rec.visits||[];
+        rec.visits.unshift(visit);
+        if(rec.visits.length>500) rec.visits.splice(500);
+        await fetch(`${BIN_BASE}/${binVisitorsId}`,{method:'PUT',
+          headers:{'Content-Type':'application/json','X-Master-Key':binMasterKey},
+          body:JSON.stringify(rec)});
+      }catch(_){}
+    }
+  }catch(_){}
+}
+
+function getBrowser(){
+  const ua=navigator.userAgent;
+  if(ua.includes('Chrome')&&!ua.includes('Edg')) return 'Chrome';
+  if(ua.includes('Firefox')) return 'Firefox';
+  if(ua.includes('Safari')&&!ua.includes('Chrome')) return 'Safari';
+  if(ua.includes('Edg')) return 'Edge';
+  return 'متصفح آخر';
+}
+
+async function openVisitors(){
+  const el=document.getElementById('visitorsList');
+  const stats=document.getElementById('visitorsStats');
+  el.innerHTML='<div style="color:var(--text-dim);text-align:center;padding:20px">⏳ جاري التحميل...</div>';
+  openModal('visitorsModal');
+  let visits=[];
+  if(binMasterKey&&binVisitorsId){
+    try{
+      const r=await fetch(`${BIN_BASE}/${binVisitorsId}/latest`,{headers:{'X-Master-Key':binMasterKey}});
+      if(r.ok){const j=await r.json();visits=(j.record||{}).visits||[];}
+    }catch(_){}
+  }
+  if(!visits.length) visits=JSON.parse(localStorage.getItem(VISITORS_KEY)||'[]');
+  if(!visits.length){
+    el.innerHTML='<div style="color:var(--text-dim);text-align:center;padding:30px">لا توجد زيارات مسجلة بعد</div>';
+    stats.innerHTML=''; return;
+  }
+  const countries=[...new Set(visits.map(v=>v.country))];
+  const today=visits.filter(v=>new Date(v.time).toDateString()===new Date().toDateString()).length;
+  stats.innerHTML=`
+    <div class="visitor-stat"><div class="vs-num">${visits.length}</div><div class="vs-lbl">إجمالي</div></div>
+    <div class="visitor-stat"><div class="vs-num">${today}</div><div class="vs-lbl">اليوم</div></div>
+    <div class="visitor-stat"><div class="vs-num">${countries.length}</div><div class="vs-lbl">دولة</div></div>
+    <div class="visitor-stat"><div class="vs-num">${visits.filter(v=>v.device&&v.device.includes('موبايل')).length}</div><div class="vs-lbl">📱</div></div>`;
+  el.innerHTML=visits.map(v=>{
+    const d=new Date(v.time);
+    const ds=d.toLocaleDateString('ar-SA',{year:'numeric',month:'short',day:'numeric'});
+    const ts=d.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit'});
+    return `<div class="visitor-card">
+      <div class="vc-time">🕐 ${ds} — ${ts}</div>
+      <div class="vc-info">🌍 ${v.country||'—'} — ${v.city||'—'}<br>🔌 ${v.ip||'—'}<br>${v.org?`🏢 ${v.org}<br>`:''} ${v.device||''} · ${v.browser||''}</div>
+    </div>`;
+  }).join('');
+}
+
+async function clearVisitors(){
+  if(!confirm('هل تريد مسح سجل الزوار كاملاً؟')) return;
+  localStorage.removeItem(VISITORS_KEY);
+  if(binMasterKey&&binVisitorsId){
+    try{
+      await fetch(`${BIN_BASE}/${binVisitorsId}`,{method:'PUT',
+        headers:{'Content-Type':'application/json','X-Master-Key':binMasterKey},
+        body:JSON.stringify({visits:[]})});
+    }catch(_){}
+  }
+  closeModal('visitorsModal'); toast('✅ تم مسح السجل');
+}
+
+function toggleTheme(){
+  const isLight=document.documentElement.classList.toggle('light-theme');
+  localStorage.setItem('theme', isLight?'light':'dark');
+  const btn=document.getElementById('themeBtn');
+  if(btn) btn.textContent=isLight?'☀️':'🌙';
+}
+
+if(localStorage.getItem('theme')==='light'){
+  document.documentElement.classList.add('light-theme');
+}
+
+function clearHighlight(){
+  document.querySelectorAll('.node.search-highlight').forEach(el=>el.classList.remove('search-highlight'));
+  const frame=document.getElementById('focusFrame');
+  if(frame) frame.style.display='none';
+}
+
+function clearSearch(){
+  document.getElementById('searchInput').value='';
+  document.getElementById('searchResults').classList.remove('open');
+  document.getElementById('searchResults').innerHTML='';
+  clearHighlight();
+}
+
+// أغلق نتائج البحث عند الضغط خارجها
+document.addEventListener('click',e=>{
+  if(!document.getElementById('searchWrap').contains(e.target)){
+    document.getElementById('searchResults').classList.remove('open');
+  }
+});
+
+// ══════════════════════════════════════════════════
+//  EXPORT ENGINE — رسم من البيانات مباشرة
+// ══════════════════════════════════════════════════
+let _exportFmt = 'png';
+let _exportScope = 'all';
+
+function openExportModal(){
+  const hasTarget=_lastFocusedId&&nodes[_lastFocusedId];
+  const partialBtns=document.querySelectorAll('#partialScopeBtns .export-scope-btn');
+  partialBtns.forEach(b=>b.classList.toggle('disabled',!hasTarget));
+
+  // اسم الشخص المحدد
+  document.getElementById('partialName').textContent=
+    hasTarget ? nodes[_lastFocusedId].name : '— لم يُحدد شخص بعد';
+
+  // إذا لا يوجد شخص محدد، ارجع لـ "كل الشجرة"
+  if(!hasTarget && _exportScope!=='all') setExportScope('all');
+
+  // JSON الاحتياطي متاح فقط للمدير الكامل (وليس حتى المستخدم المؤقت)
+  const jsonCard=document.getElementById('jsonExportCard');
+  if(jsonCard){
+    jsonCard.style.display = isAdmin ? '' : 'none';
+    if(!isAdmin && _exportFmt==='json'){
+      _exportFmt='png';
+      document.querySelectorAll('.export-card').forEach(c=>c.classList.remove('selected'));
+      const pngCard=document.querySelector('.export-card[data-fmt="png"]');
+      if(pngCard) pngCard.classList.add('selected');
+    }
+  }
+
+  document.getElementById('exportPreviewWrap').innerHTML=
+    '<span style="color:var(--text-dim);font-size:12px">اضغط "معاينة" لرؤية الشجرة قبل الحفظ</span>';
+  openModal('exportModal');
+}
+
+const SCOPE_IDS=['scopeAll','scopeAncestorsChildren','scopeDescendants','scopeFamily','scopeFamilyDeep'];
+
+function setExportScope(s){
+  _exportScope=s;
+  // أزل active من الكل
+  SCOPE_IDS.forEach(sid=>{
+    const el=document.getElementById(sid);
+    if(el) el.classList.remove('active');
+  });
+  // فعّل المحدد
+  const map={
+    all:'scopeAll',
+    ancestorsChildren:'scopeAncestorsChildren',
+    descendants:'scopeDescendants',
+    family:'scopeFamily',
+    familyDeep:'scopeFamilyDeep'
+  };
+  const target=document.getElementById(map[s]);
+  if(target) target.classList.add('active');
+}
+
+/* ── جمع العقد حسب النطاق المحدد ── */
+function getExportNodes(){
+  const allNodes=Object.values(nodes);
+  if(_exportScope==='all') return allNodes;
+
+  const id=_lastFocusedId;
+  if(!id||!nodes[id]) return allNodes;
+
+  const included=new Set();
+
+  /* مساعد: أضف سلسلة الأجداد كاملة حتى الجذر */
+  function addAncestors(nodeId){
+    let cur=nodeId;
+    while(cur){ included.add(cur); cur=nodes[cur]?.parentId; }
+  }
+
+  /* مساعد: أضف كل الذرية (أبناء + أحفاد + ...) */
+  function addDescendants(nodeId){
+    included.add(nodeId);
+    allNodes.filter(n=>n.parentId===nodeId).forEach(c=>addDescendants(c.id));
+  }
+
+  /* مساعد: أضف أبناء مباشرين فقط */
+  function addChildren(nodeId){
+    allNodes.filter(n=>n.parentId===nodeId).forEach(c=>included.add(c.id));
+  }
+
+  if(_exportScope==='ancestorsChildren'){
+    // الشخص + كل أجداده حتى الجذر + أبناؤه المباشرون
+    addAncestors(id);
+    addChildren(id);
+  }
+  else if(_exportScope==='descendants'){
+    // الشخص + كل ذريته حتى آخر الشجرة
+    addDescendants(id);
+  }
+  else if(_exportScope==='family'){
+    // الشخص + أبوه + إخوانه (أبناء الأب) + أبناء الشخص
+    included.add(id);
+    const parentId=nodes[id].parentId;
+    if(parentId){
+      included.add(parentId);
+      allNodes.filter(n=>n.parentId===parentId).forEach(n=>included.add(n.id)); // الإخوان
+    }
+    addChildren(id); // أبناء الشخص
+  }
+  else if(_exportScope==='familyDeep'){
+    // الشخص + أبوه + إخوانه + أبناء الشخص + أبناء الإخوان
+    included.add(id);
+    const parentId=nodes[id].parentId;
+    if(parentId){
+      included.add(parentId);
+      const siblings=allNodes.filter(n=>n.parentId===parentId);
+      siblings.forEach(n=>{
+        included.add(n.id);
+        addChildren(n.id); // أبناء كل أخ
+      });
+    }
+    addChildren(id);
+  }
+
+  return [...included].map(i=>nodes[i]).filter(Boolean);
+}
+
+function selectFmt(el,fmt){
+  document.querySelectorAll('.export-card').forEach(c=>c.classList.remove('selected'));
+  el.classList.add('selected');
+  _exportFmt=fmt;
+  const qr=document.querySelector('.export-quality-row');
+  const disabled=fmt==='svg'||fmt==='json';
+  qr.style.opacity=disabled?'.4':'1';
+  qr.style.pointerEvents=disabled?'none':'';
+}
+
+function buildTreeCanvas(exportNodes,scale,bgMode){
+  const NW=180,NH=90,HGAP=55,VGAP=100;
+  const nodeMap={};
+  exportNodes.forEach(n=>{ nodeMap[n.id]={...n}; });
+
+  function spanOf(id){
+    const kids=exportNodes.filter(n=>n.parentId===id&&nodeMap[n.id]);
+    if(!kids.length) return 1;
+    return kids.reduce((s,k)=>s+spanOf(k.id),0);
+  }
+  function placeNode(id,depth,colStart){
+    const kids=exportNodes.filter(n=>n.parentId===id&&nodeMap[n.id]);
+    if(!kids.length){ nodeMap[id].ex=colStart*(NW+HGAP)+60; nodeMap[id].ey=depth*(NH+VGAP)+60; return; }
+    let cur=colStart;
+    kids.forEach(k=>{ placeNode(k.id,depth+1,cur); cur+=spanOf(k.id); });
+    nodeMap[id].ex=(nodeMap[kids[0].id].ex+nodeMap[kids[kids.length-1].id].ex)/2;
+    nodeMap[id].ey=depth*(NH+VGAP)+60;
+  }
+  const roots=exportNodes.filter(n=>!n.parentId||!nodeMap[n.parentId]);
+  let col=0; roots.forEach(r=>{ placeNode(r.id,0,col); col+=spanOf(r.id); });
+
+  let maxX=0,maxY=0;
+  exportNodes.forEach(n=>{ maxX=Math.max(maxX,(nodeMap[n.id].ex||0)+NW+60); maxY=Math.max(maxY,(nodeMap[n.id].ey||0)+NH+60); });
+  maxX=Math.max(maxX,400); maxY=Math.max(maxY,300);
+
+  const c=document.createElement('canvas');
+  c.width=maxX*scale; c.height=maxY*scale;
+  const ctx=c.getContext('2d');
+  ctx.scale(scale,scale);
+
+  // خلفية
+  if(bgMode==='transparent'){ ctx.clearRect(0,0,maxX,maxY); }
+  else if(bgMode==='light'){ ctx.fillStyle='#f5f0e8'; ctx.fillRect(0,0,maxX,maxY); }
+  else {
+    const g=ctx.createRadialGradient(maxX/2,0,0,maxX/2,maxY/2,Math.max(maxX,maxY));
+    g.addColorStop(0,'#1a1510'); g.addColorStop(1,'#0f0e0c');
+    ctx.fillStyle=g; ctx.fillRect(0,0,maxX,maxY);
+  }
+
+  const isDark=bgMode!=='light';
+  const lc=isDark?'rgba(201,150,42,0.55)':'rgba(139,90,15,0.5)';
+
+  // خطوط
+  ctx.strokeStyle=lc; ctx.lineWidth=1.8; ctx.lineCap='round';
+  exportNodes.forEach(n=>{
+    if(!n.parentId||!nodeMap[n.parentId]) return;
+    const p=nodeMap[n.parentId],c2=nodeMap[n.id];
+    const px=p.ex+NW/2,py=p.ey+NH,cx2=c2.ex+NW/2,cy2=c2.ey,mid=(py+cy2)/2;
+    ctx.beginPath(); ctx.moveTo(px,py); ctx.bezierCurveTo(px,mid,cx2,mid,cx2,cy2); ctx.stroke();
+    ctx.fillStyle=lc; ctx.beginPath(); ctx.moveTo(cx2,cy2); ctx.lineTo(cx2-5,cy2-9); ctx.lineTo(cx2+5,cy2-9); ctx.closePath(); ctx.fill();
+  });
+
+  // خطوط الإخوة
+  const byP={};
+  exportNodes.forEach(n=>{ if(n.parentId&&nodeMap[n.parentId])(byP[n.parentId]=byP[n.parentId]||[]).push(n); });
+  Object.values(byP).forEach(siblings=>{
+    if(siblings.length<2) return;
+    const ys=siblings.map(s=>nodeMap[s.id].ey);
+    if(!ys.every(y=>y===ys[0])) return;
+    const xs=siblings.map(s=>nodeMap[s.id].ex+NW/2).sort((a,b)=>a-b);
+    ctx.strokeStyle='rgba(201,150,42,0.25)'; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(xs[0],ys[0]-18); ctx.lineTo(xs[xs.length-1],ys[0]-18); ctx.stroke();
+  });
+
+  // عقد
+  exportNodes.forEach(n=>{
+    const nm=nodeMap[n.id]; const x=nm.ex,y=nm.ey;
+    const isRoot=!n.parentId||!nodeMap[n.parentId];
+    const isTarget=n.id===_lastFocusedId&&_exportScope==='partial';
+    const R=10;
+    ctx.shadowColor='rgba(0,0,0,0.35)'; ctx.shadowBlur=12; ctx.shadowOffsetY=4;
+    const grd=ctx.createLinearGradient(x,y,x,y+NH);
+    if(isRoot||isTarget){ grd.addColorStop(0,isDark?'#2a1f00':'#fff8e1'); grd.addColorStop(1,isDark?'#1a1200':'#fef3c7'); }
+    else { grd.addColorStop(0,isDark?'#1c1a15':'#fffdf7'); grd.addColorStop(1,isDark?'#141210':'#f5f0e8'); }
+    ctx.beginPath();
+    ctx.moveTo(x+R,y); ctx.lineTo(x+NW-R,y); ctx.arcTo(x+NW,y,x+NW,y+R,R);
+    ctx.lineTo(x+NW,y+NH-R); ctx.arcTo(x+NW,y+NH,x+NW-R,y+NH,R);
+    ctx.lineTo(x+R,y+NH); ctx.arcTo(x,y+NH,x,y+NH-R,R);
+    ctx.lineTo(x,y+R); ctx.arcTo(x,y,x+R,y,R); ctx.closePath();
+    ctx.fillStyle=grd; ctx.fill();
+    ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+    ctx.strokeStyle=(isRoot||isTarget)?'#c9962a':(isDark?'#2e2820':'#d4b56a');
+    ctx.lineWidth=(isRoot||isTarget)?2:1.2; ctx.stroke();
+
+    ctx.font='18px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(n.gender==='f'?'👩':'👨',x+NW/2,y+18);
+
+    ctx.fillStyle=(isRoot||isTarget)?(isDark?'#e8c84a':'#8a5c0a'):(isDark?'#e8dcc8':'#1a1208');
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.direction='rtl';
+    const words=n.name.split(' ');
+    if(words.length<=3){ ctx.font=`bold ${isRoot?15:13}px Tajawal,Arial`; ctx.fillText(n.name,x+NW/2,y+44); }
+    else {
+      ctx.font='bold 12px Tajawal,Arial'; ctx.fillText(words.slice(0,3).join(' '),x+NW/2,y+40);
+      ctx.font='11px Tajawal,Arial'; ctx.fillStyle=isDark?'#8a7a62':'#6a5a42';
+      ctx.fillText(words.slice(3).join(' '),x+NW/2,y+56);
+    }
+    if(n.birth){
+      ctx.font='10px Tajawal,Arial'; ctx.fillStyle=isDark?'#8a7a62':'#6a5a42';
+      ctx.fillText('📅 '+n.birth,x+NW/2,y+NH-10);
+    }
+  });
+
+  ctx.font='bold 15px Tajawal,Arial'; ctx.textAlign='center';
+  ctx.fillStyle=isDark?'rgba(201,150,42,0.45)':'rgba(139,90,15,0.35)';
+  ctx.fillText('شجرة العائلة',maxX/2,maxY-16);
+
+  return {canvas:c,width:maxX,height:maxY};
+}
+
+function buildTreeSVG(exportNodes){
+  const NW=180,NH=90,HGAP=55,VGAP=100;
+  const nodeMap={};
+  exportNodes.forEach(n=>{ nodeMap[n.id]={...n}; });
+  function spanOf(id){ const k=exportNodes.filter(n=>n.parentId===id&&nodeMap[n.id]); if(!k.length)return 1; return k.reduce((s,c)=>s+spanOf(c.id),0); }
+  function placeNode(id,d,cs){
+    const k=exportNodes.filter(n=>n.parentId===id&&nodeMap[n.id]);
+    if(!k.length){ nodeMap[id].ex=cs*(NW+HGAP)+60; nodeMap[id].ey=d*(NH+VGAP)+60; return; }
+    let cur=cs; k.forEach(c=>{ placeNode(c.id,d+1,cur); cur+=spanOf(c.id); });
+    nodeMap[id].ex=(nodeMap[k[0].id].ex+nodeMap[k[k.length-1].id].ex)/2; nodeMap[id].ey=d*(NH+VGAP)+60;
+  }
+  const roots=exportNodes.filter(n=>!n.parentId||!nodeMap[n.parentId]);
+  let col=0; roots.forEach(r=>{ placeNode(r.id,0,col); col+=spanOf(r.id); });
+  let mX=0,mY=0;
+  exportNodes.forEach(n=>{ mX=Math.max(mX,(nodeMap[n.id].ex||0)+NW+60); mY=Math.max(mY,(nodeMap[n.id].ey||0)+NH+60); });
+  mX=Math.max(mX,400); mY=Math.max(mY,300);
+
+  let svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${mX}" height="${mY}" viewBox="0 0 ${mX} ${mY}">
+<defs><style>text{font-family:Tajawal,Arial,sans-serif;}</style>
+<radialGradient id="bg" cx="50%" cy="0%" r="80%"><stop offset="0%" stop-color="#1a1510"/><stop offset="100%" stop-color="#0f0e0c"/></radialGradient></defs>
+<rect width="${mX}" height="${mY}" fill="url(#bg)"/>`;
+
+  exportNodes.forEach(n=>{
+    if(!n.parentId||!nodeMap[n.parentId]) return;
+    const p=nodeMap[n.parentId],c=nodeMap[n.id];
+    const px=p.ex+NW/2,py=p.ey+NH,cx2=c.ex+NW/2,cy2=c.ey,m=(py+cy2)/2;
+    svg+=`<path d="M${px},${py} C${px},${m} ${cx2},${m} ${cx2},${cy2}" stroke="#c9962a" stroke-width="1.8" fill="none" opacity="0.55"/>`;
+    svg+=`<polygon points="${cx2},${cy2} ${cx2-5},${cy2-9} ${cx2+5},${cy2-9}" fill="rgba(201,150,42,0.55)"/>`;
+  });
+
+  exportNodes.forEach(n=>{
+    const nm=nodeMap[n.id]; const x=nm.ex,y=nm.ey;
+    const isRoot=!n.parentId||!nodeMap[n.parentId];
+    const gid='g'+n.id;
+    svg+=`<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${isRoot?'#2a1f00':'#1c1a15'}"/><stop offset="100%" stop-color="${isRoot?'#1a1200':'#141210'}"/></linearGradient></defs>`;
+    svg+=`<rect x="${x}" y="${y}" width="${NW}" height="${NH}" rx="10" fill="url(#${gid})" stroke="${isRoot?'#c9962a':'#2e2820'}" stroke-width="${isRoot?2:1.2}"/>`;
+    svg+=`<text x="${x+NW/2}" y="${y+22}" font-size="16" text-anchor="middle" dominant-baseline="middle">${n.gender==='f'?'👩':'👨'}</text>`;
+    svg+=`<text x="${x+NW/2}" y="${y+46}" font-size="${isRoot?14:12}" font-weight="bold" fill="${isRoot?'#e8c84a':'#e8dcc8'}" text-anchor="middle" direction="rtl">${n.name}</text>`;
+    if(n.birth){ svg+=`<text x="${x+NW/2}" y="${y+NH-10}" font-size="9" fill="#8a7a62" text-anchor="middle">📅 ${n.birth}</text>`; }
+  });
+
+  svg+=`<text x="${mX/2}" y="${mY-12}" font-size="14" fill="rgba(201,150,42,0.45)" text-anchor="middle">شجرة العائلة</text></svg>`;
+  return svg;
+}
+
+async function runExportPreview(){
+  if(!Object.keys(nodes).length){ toast('⚠️ لا توجد بيانات'); return; }
+  if(_exportFmt==='json'||_exportFmt==='svg'){
+    document.getElementById('exportPreviewWrap').innerHTML='<span style="color:var(--gold);font-size:13px">📄 المعاينة غير متاحة لهذه الصيغة</span>';
+    return;
+  }
+  const exportNodes=getExportNodes();
+  const bg=document.getElementById('exportBg').value;
+  const {canvas}=buildTreeCanvas(exportNodes,1,bg);
+  const pw=document.getElementById('exportPreviewWrap');
+  pw.innerHTML=''; canvas.style.maxWidth='100%'; canvas.style.borderRadius='8px'; pw.appendChild(canvas);
+}
+
+async function runExport(){
+  if(!Object.keys(nodes).length){ toast('⚠️ لا توجد بيانات'); return; }
+  // حماية: منع تصدير JSON لغير المدير الكامل حتى لو تم التلاعب بالواجهة
+  if(_exportFmt==='json' && !isAdmin){
+    toast('🚫 النسخة الاحتياطية JSON متاحة للمدير فقط');
+    return;
+  }
+  const ov=document.getElementById('exportOverlay');
+  document.getElementById('exportOverlayMsg').textContent='⏳ جاري البناء...';
+  ov.classList.add('show'); closeModal('exportModal');
+  await new Promise(r=>setTimeout(r,50));
+  try{
+    const exportNodes=getExportNodes();
+    const scale=parseInt(document.getElementById('exportScale').value)||2;
+    const bg=document.getElementById('exportBg').value;
+    const fmt=_exportFmt;
+    const lbl=_exportScope==='partial'&&_lastFocusedId&&nodes[_lastFocusedId]
+      ? nodes[_lastFocusedId].name.replace(/\s+/g,'-') : 'family-tree';
+    const fname=`${lbl}-${new Date().toISOString().slice(0,10)}`;
+
+    if(fmt==='json'){
+      dl(new Blob([JSON.stringify({nodes,nextId,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'}),fname+'.json');
+      toast('✅ تم حفظ النسخة الاحتياطية');
+    } else if(fmt==='svg'){
+      dl(new Blob([buildTreeSVG(exportNodes)],{type:'image/svg+xml'}),fname+'.svg');
+      toast('✅ تم تصدير SVG');
+    } else {
+      const {canvas}=buildTreeCanvas(exportNodes,scale,bg);
+      const mime=fmt==='jpg'?'image/jpeg':'image/png';
+      canvas.toBlob(blob=>{ dl(blob,fname+'.'+fmt); toast('✅ تم تصدير الصورة'); },mime,fmt==='jpg'?0.92:1);
+    }
+  }catch(e){ toast('❌ فشل التصدير: '+e.message); console.error(e); }
+  ov.classList.remove('show');
+}
+
+function dl(blob,name){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function openExportPartial(){ openExportModal(); }
+
+// ══════════════════════════════════════════════════
+//  LONG-PRESS TOOLTIP
+// ══════════════════════════════════════════════════
+let _lpTimer=null;
+
+function attachLongPress(el, id){
+  // ماوس فقط — الـ touch يُعالَج في نظام الـ pan الموحّد
+  el.addEventListener('mousedown', e=>{
+    if(e.target.closest('.node-btn')) return;
+    _lpTimer=setTimeout(()=>showLpTooltip(id, e), 450);
+  });
+  el.addEventListener('mouseup',   hideLpTooltip);
+  el.addEventListener('mouseleave',hideLpTooltip);
+  el.addEventListener('contextmenu',e=>e.preventDefault());
+}
+
+function showLpTooltip(id, pointerEvent){
+  const n=nodes[id]; if(!n) return;
+
+  // بناء سلسلة الأجداد
+  const chain=[];
+  let cur=n.parentId;
+  while(cur&&nodes[cur]){ chain.unshift(nodes[cur].name); cur=nodes[cur].parentId; }
+
+  const tp=document.getElementById('lpTooltip');
+
+  // سلسلة الأجداد: جد → جد → أب
+  const chainHtml=chain.length
+    ? `<div class="lp-chain">${[...chain].reverse().map((nm,i)=>`<span>${nm}</span>${i<chain.length-1?'<span class="lp-arrow">←</span>':''}`).join('')}</div>`
+    : '';
+
+  // ملاحظة / ميلاد
+  const meta=[(n.birth?'📅 '+n.birth:''),(n.note||'')].filter(Boolean).join(' · ');
+
+  tp.innerHTML=`
+    <div class="lp-name">${n.gender==='f'?'👩':'👨'} ${n.name}</div>
+    ${chainHtml}
+    ${meta?`<div class="lp-meta">${meta}</div>`:''}`;
+
+  // الموضع: فوق الإصبع أو المؤشر، مع تصحيح حدود الشاشة
+  const cx=(pointerEvent.clientX||pointerEvent.pageX)||0;
+  const cy=(pointerEvent.clientY||pointerEvent.pageY)||0;
+
+  tp.classList.add('show');
+
+  // نحسب الموضع بعد الإظهار لمعرفة الحجم
+  requestAnimationFrame(()=>{
+    const w=tp.offsetWidth, h=tp.offsetHeight;
+    const vw=window.innerWidth, vh=window.innerHeight;
+    let left=cx - w/2;
+    let top =cy - h - 16;
+    // تصحيح الحدود
+    if(left<8) left=8;
+    if(left+w>vw-8) left=vw-w-8;
+    if(top<8) top=cy+24; // تحته لو ما في مساحة فوقه
+    tp.style.left=left+'px';
+    tp.style.top =top+'px';
+  });
+}
+
+function hideLpTooltip(){
+  clearTimeout(_lpTimer); _lpTimer=null;
+  document.getElementById('lpTooltip').classList.remove('show');
+}
+
+// ══════════════════════════════════════════════════
+//  ZOOM + PAN + LONG-PRESS — موحّد بدون تعارض
+// ══════════════════════════════════════════════════
+(function(){
+  const W=()=>document.getElementById('canvas-wrap');
+  const TI=()=>document.getElementById('tree-inner');
+
+  /* ── State ── */
+  let _s=1, _tx=0, _ty=0;          // scale + translate
+  const MIN=0.1, MAX=4;
+
+  function apply(){
+    const el=TI(); if(!el) return;
+    el.style.transform=`translate(${_tx}px,${_ty}px) scale(${_s})`;
+  }
+
+  function zoomAt(cx,cy,factor){
+    const ns=Math.max(MIN,Math.min(MAX,_s*factor));
+    if(ns===_s) return;
+    _tx=cx-(cx-_tx)*(ns/_s);
+    _ty=cy-(cy-_ty)*(ns/_s);
+    _s=ns; apply();
+  }
+
+  /* ── Center Tree ── */
+  window._userHasPanned = false;
+  window._centerTree = function(){
+    const wrap = W(); if(!wrap) return;
+    const ids = Object.keys(nodes);
+    if(!ids.length) return;
+
+    // إيجاد الجذر (أعلى عقدة في الشجرة)
+    const rootId = Object.keys(nodes).find(id => !nodes[id].parentId) || Object.keys(nodes)[0];
+    const root = nodes[rootId];
+    if(!root) return;
+
+    const ww = window.innerWidth;
+    const wh = window.innerHeight - 150;
+
+    // scale ثابت مناسب للقراءة
+    _s = 0.45;
+
+    // ضع الجذر في منتصف الشاشة أفقياً وعمودياً
+    _tx = ww/2 - (root.x + NODE_W/2) * _s;
+    _ty = wh/2 - (root.y + NODE_H/2) * _s;
+
+    apply();
+  };
+
+  /* ── panTo للبحث ── */
+  window._panTo=function(nodeCX,nodeCY,ww,wh){
+    const targetTx=ww/2-nodeCX*_s;
+    const targetTy=wh/2-nodeCY*_s;
+    const sx=_tx,sy=_ty; const dur=450,t0=performance.now();
+    function step(now){
+      const p=Math.min(1,(now-t0)/dur);
+      const e=1-Math.pow(1-p,3);
+      _tx=sx+(targetTx-sx)*e; _ty=sy+(targetTy-sy)*e; apply();
+      if(p<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  };
+  window._applyTransform=apply;
+  window._scale=new Proxy({},{get:()=>_s});
+
+  /* ══ WHEEL ══ */
+  document.addEventListener('wheel',e=>{
+    const w=W(); if(!w||!w.contains(e.target)) return;
+    e.preventDefault();
+    window._userHasPanned = true;
+    const r=w.getBoundingClientRect();
+    zoomAt(e.clientX-r.left,e.clientY-r.top,e.deltaY<0?1.12:0.90);
+  },{passive:false});
+
+  /* ══ MOUSE PAN ══ */
+  let mp=false,mpx=0,mpy=0;
+  document.addEventListener('mousedown',e=>{
+    const w=W(); if(!w||!w.contains(e.target)) return;
+    if(e.button!==0) return;
+    if(e.target.closest('button,.node-btn')) return;
+    mp=true; mpx=e.clientX-_tx; mpy=e.clientY-_ty;
+    window._userHasPanned = true;
+    w.classList.add('panning');
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!mp) return;
+    _tx=e.clientX-mpx; _ty=e.clientY-mpy; apply();
+  });
+  document.addEventListener('mouseup',()=>{ mp=false; W()?.classList.remove('panning'); });
+
+  /* ══ TOUCH: PAN + PINCH + LONG-PRESS (موحّد) ══ */
+  let _lt=[];          // last touches
+  let _lpTimer=null;   // long-press timer
+  let _moved=false;    // هل تحرك الإصبع؟
+
+  function dst(a,b){const dx=a.clientX-b.clientX,dy=a.clientY-b.clientY;return Math.sqrt(dx*dx+dy*dy);}
+  function mid(a,b){return{x:(a.clientX+b.clientX)/2,y:(a.clientY+b.clientY)/2};}
+  function tc(e){return Array.from(e.touches);}
+
+  document.addEventListener('touchstart',e=>{
+    const w=W(); if(!w||!w.contains(e.target)) return;
+    const cur=tc(e);
+    _lt=cur; _moved=false;
+
+    // long-press: فقط إصبع واحد على عقدة
+    if(cur.length===1){
+      const nodeEl=e.target.closest('.node');
+      if(nodeEl && !e.target.closest('button,.node-btn')){
+        const id=nodeEl.id.replace('node-','');
+        clearTimeout(_lpTimer);
+        _lpTimer=setTimeout(()=>{
+          if(!_moved) showLpTooltip(id, cur[0]);
+        },450);
+      }
+    } else {
+      // إصبعان: ألغِ الـ long-press
+      clearTimeout(_lpTimer); _lpTimer=null;
+    }
+  },{passive:true});
+
+  document.addEventListener('touchmove',e=>{
+    const w=W(); if(!w||!w.contains(e.target)) return;
+    const cur=tc(e);
+    if(!_lt.length){_lt=cur;return;}
+
+    // أي حركة تلغي الـ long-press
+    const moved=dst(cur[0],_lt[0])>5;
+    if(moved){ _moved=true; clearTimeout(_lpTimer); _lpTimer=null; window._userHasPanned=true; }
+
+    if(!_moved && cur.length===1) { _lt=cur; return; } // لا تحريك بعد
+
+    e.preventDefault();
+    const r=w.getBoundingClientRect();
+
+    if(cur.length===1){
+      _tx+=cur[0].clientX-_lt[0].clientX;
+      _ty+=cur[0].clientY-_lt[0].clientY;
+      apply();
+    } else if(cur.length===2 && _lt.length===2){
+      const mC=mid(cur[0],cur[1]), mL=mid(_lt[0],_lt[1]);
+      _tx+=mC.x-mL.x; _ty+=mC.y-mL.y;
+      const dC=dst(cur[0],cur[1]), dL=dst(_lt[0],_lt[1]);
+      if(dL>5){
+        const cx=mC.x-r.left, cy=mC.y-r.top;
+        const ns=Math.max(MIN,Math.min(MAX,_s*(dC/dL)));
+        _tx=cx-(cx-_tx)*(ns/_s);
+        _ty=cy-(cy-_ty)*(ns/_s);
+        _s=ns;
+      }
+      apply();
+    }
+    _lt=cur;
+  },{passive:false});
+
+  document.addEventListener('touchend',e=>{
+    clearTimeout(_lpTimer); _lpTimer=null;
+    hideLpTooltip();
+    _lt=tc(e);
+  },{passive:true});
+
+})();
+</script>
+</body>
+</html>
