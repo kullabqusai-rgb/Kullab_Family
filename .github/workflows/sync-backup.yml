@@ -1,0 +1,30 @@
+name: مزامنة تلقائية من JSONBin إلى GitHub
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'   # كل 6 ساعات تلقائياً
+  workflow_dispatch:         # يسمح بالتشغيل اليدوي أيضاً من تبويب Actions لو حبيت تجرب فوراً
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: تنزيل المستودع
+        uses: actions/checkout@v4
+
+      - name: جلب أحدث نسخة من JSONBin وحفظها
+        run: |
+          curl -s -X GET "https://api.jsonbin.io/v3/b/6a2ddb99f5f4af5e29edacdb/latest" \
+            -H "X-Access-Key: \$2a\$10\$gHi821O7wSvpjKS3fGt4De7JVpXsXl3OgNI9ssOjtMjdzC7e2bDWi" \
+            | jq '.record' > family-tree-data.json
+
+      - name: حفظ التغييرات فقط لو فيه تحديث فعلي
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add family-tree-data.json
+          git diff --staged --quiet || git commit -m "مزامنة تلقائية من JSONBin - $(date '+%Y-%m-%d %H:%M')"
+          git push
