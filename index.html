@@ -272,6 +272,7 @@
     #searchInput:focus{width:190px;}
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 </head>
 <body>
 
@@ -444,10 +445,15 @@
     <div class="form-group"><label>كلمة المرور</label>
       <input type="password" id="adminPass" placeholder="••••••••"
         onkeydown="if(event.key==='Enter')doAdminLogin()"></div>
-    <div class="form-group"><label>🔐 Master Key (للحفظ)</label>
+    <div class="form-group"><label>🐙 GitHub Token (لحفظ بيانات الشجرة)</label>
+      <input type="password" id="adminGhToken" placeholder="ghp_..."
+        onkeydown="if(event.key==='Enter')doAdminLogin()">
+      <div style="font-size:10px;color:var(--text-dim);margin-top:4px">مطلوب فقط للإضافة والتعديل على الشجرة — اتركه فارغاً للعرض فقط</div>
+    </div>
+    <div class="form-group"><label>🔐 Master Key (لسجل الزوار وكلمات المرور المؤقتة)</label>
       <input type="password" id="adminMasterKey" placeholder="$2a$10$..."
         onkeydown="if(event.key==='Enter')doAdminLogin()">
-      <div style="font-size:10px;color:var(--text-dim);margin-top:4px">مطلوب فقط للإضافة والتعديل — اتركه فارغاً للعرض فقط</div>
+      <div style="font-size:10px;color:var(--text-dim);margin-top:4px">اختياري — مطلوب فقط لو حابب تستخدم سجل الزوار وكلمات المرور المؤقتة</div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal('adminModal')">إلغاء</button>
@@ -537,12 +543,11 @@
   <div class="modal">
     <h3>☁️ إعداد التخزين السحابي</h3>
     <p style="font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.7">
-      استخدم <strong style="color:var(--gold)">JSONBin.io</strong> المجاني لحفظ البيانات على الإنترنت بحيث يراها الجميع.
+      هذه النسخة تخزّن بيانات الشجرة على <strong style="color:var(--gold)">GitHub</strong> (مستودع: <code style="background:#111;padding:1px 4px;border-radius:3px">kullabqusai-rgb/Kullab_Family</code>) — لا يحتاج إعداد هنا.<br>
+      الإعدادات بالأسفل خاصة فقط بـ <strong style="color:var(--gold)">سجل الزوار وكلمات المرور المؤقتة</strong> (اختياري، عبر JSONBin.io).
     </p>
     <div class="form-group"><label>🔑 Master Key</label>
       <input type="password" id="binMasterKey" placeholder="$2a$10$..."></div>
-    <div class="form-group"><label>📦 Bin ID — البيانات الرئيسية</label>
-      <input type="text" id="binDataId" placeholder="64abc123..."></div>
     <div class="form-group"><label>📦 Bin ID — الإعدادات والكلمات المؤقتة</label>
       <input type="text" id="binSettingsId" placeholder="64def456..."></div>
     <details style="margin-bottom:12px">
@@ -550,9 +555,10 @@
       <div style="font-size:11px;color:var(--text-dim);line-height:1.9;margin-top:8px;padding:10px;background:var(--surface2);border-radius:8px">
         1. سجّل مجاناً على <strong style="color:var(--gold-light)">jsonbin.io</strong><br>
         2. API Keys ← انسخ <strong>Master Key</strong><br>
-        3. أنشئ Bin جديد → <code style="background:#111;padding:1px 4px;border-radius:3px">{"nodes":{},"nextId":1}</code> → انسخ ID → البيانات الرئيسية<br>
-        4. أنشئ Bin ثاني → <code style="background:#111;padding:1px 4px;border-radius:3px">{"tempPws":[]}</code> → انسخ ID → الإعدادات<br>
-        5. في إعدادات كل Bin → اجعل <strong>Private: OFF</strong>
+        3. أنشئ Bin → <code style="background:#111;padding:1px 4px;border-radius:3px">{"tempPws":[]}</code> → انسخ ID<br>
+        4. في إعدادات الـ Bin → اجعل <strong>Private: OFF</strong><br>
+        <br>
+        ملاحظة: حفظ بيانات الشجرة نفسها يتم عبر <strong style="color:var(--gold-light)">GitHub Token</strong> من نافذة دخول المدير، وليس من هنا.
       </div>
     </details>
     <div class="modal-actions">
@@ -593,7 +599,6 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <script>
 // ══════════════════════════════════════════════════
 //  STATE
@@ -616,27 +621,37 @@ const H_GAP  = 50,  V_GAP  = 90;
 // ══════════════════════════════════════════════════
 const CFG_KEY = 'ftree_cfg';
 const BIN_BASE = 'https://api.jsonbin.io/v3/b';
-let binMasterKey='';  // لا يُخزَّن في الكود — يُدخله المدير فقط عند تسجيل الدخول
-let binReadKey='$2a$10$gHi821O7wSvpjKS3fGt4De7JVpXsXl3OgNI9ssOjtMjdzC7e2bDWi'; // للقراءة فقط (عام)
-let binDataId='6a2ddb99f5f4af5e29edacdb';
+let binMasterKey='';  // فقط لسجل الزوار وكلمات المرور المؤقتة (JSONBin) — لا يُخزَّن في الكود
+let binReadKey='$2a$10$gHi821O7wSvpjKS3fGt4De7JVpXsXl3OgNI9ssOjtMjdzC7e2bDWi'; // للقراءة فقط (عام) — لسجل الزوار فقط
 let binSettingsId='6a2ddbd1da38895dfebc27bc';
 let binVisitorsId='6a4258fada38895dfe0f93f7';
+
+// ══════════════════════════════════════════════════
+//  GITHUB CONFIG  (بيانات الشجرة الأساسية مخزّنة هنا بدل JSONBin)
+// ══════════════════════════════════════════════════
+const GH_OWNER  = 'kullabqusai-rgb';
+const GH_REPO   = 'Kullab_Family';
+const GH_BRANCH = 'main';
+const GH_PATH   = 'family-tree-data.json';
+const GH_API    = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
+const GH_RAW    = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${GH_PATH}`;
+let ghToken=''; // يُدخله المدير فقط عند تسجيل الدخول — لا يُخزَّن في الكود
 
 function loadBinConfig(){
   // المفاتيح مدمجة في الكود مباشرة
 }
 function saveBinConfig(){
   const mk =document.getElementById('binMasterKey').value.trim();
-  const did=document.getElementById('binDataId').value.trim();
   const sid=document.getElementById('binSettingsId').value.trim();
-  if(!mk||!did||!sid){toast('⚠️ الرجاء تعبئة جميع الحقول');return;}
-  localStorage.setItem(CFG_KEY,JSON.stringify({mk,did,sid}));
-  binMasterKey=mk; binDataId=did; binSettingsId=sid;
+  if(!mk||!sid){toast('⚠️ الرجاء تعبئة جميع الحقول');return;}
+  localStorage.setItem(CFG_KEY,JSON.stringify({mk,sid}));
+  binMasterKey=mk; binSettingsId=sid;
   closeModal('binSetupModal');
   toast('✅ تم الحفظ — جاري التحميل...');
   loadFromCloud();
 }
-function isCloudOK(){ return (binMasterKey||binReadKey)&&binDataId&&binSettingsId; }
+// يُستخدم فقط لسجل الزوار وكلمات المرور المؤقتة (JSONBin) — بيانات الشجرة منفصلة تماماً وتُقرأ من GitHub دائماً
+function isCloudOK(){ return (binMasterKey||binReadKey)&&binSettingsId; }
 
 // ══════════════════════════════════════════════════
 //  CLOUD  READ / WRITE
@@ -644,30 +659,45 @@ function isCloudOK(){ return (binMasterKey||binReadKey)&&binDataId&&binSettingsI
 async function loadFromCloud(){
   bar(true);
   try{
-    const headers = binMasterKey
-      ? {'X-Master-Key': binMasterKey}
-      : {'X-Access-Key': binReadKey};
-    const r1=await fetch(`${BIN_BASE}/${binDataId}/latest`,{headers});
-    if(r1.ok){
-      const j=await r1.json();
-      const d=j.record||{};
-      if(d._z){
-        // بيانات مضغوطة
-        try{
-          const decompressed=LZString.decompressFromBase64(d._z);
-          if(decompressed){
-            const payload=JSON.parse(decompressed);
-            nodes=payload.nodes||{}; nextId=payload.nextId||1;
-          }
-        }catch(e){ nodes={}; nextId=1; }
-      } else {
-        // بيانات غير مضغوطة (قديمة)
-        nodes=d.nodes||{}; nextId=d.nextId||1;
-      }
+    let rawText;
+    if(ghToken){
+      // المدير مسجل دخول بالتوكن: نقرأ مباشرة عبر GitHub API — بدون أي تأخير كاش، تظهر آخر نسخة فوراً
+      try{
+        const rApi=await fetch(`${GH_API}?ref=${GH_BRANCH}`,{
+          headers:{'Authorization':'token '+ghToken,'Accept':'application/vnd.github.raw'}
+        });
+        if(rApi.ok){ rawText = await rApi.text(); }
+      }catch(e){ /* لو فشل، هنرجع نجرب الرابط العام تحت */ }
     }
-    const r2=await fetch(`${BIN_BASE}/${binSettingsId}/latest`,{headers});
-    if(r2.ok){const j=await r2.json();tempPasswords=(j.record||{}).tempPws||[];}
-  }catch(e){toast('⚠️ تعذّر الاتصال بالسحابة');}
+    if(rawText===undefined){
+      // بدون توكن (زائر عادي): رابط عام، ممكن يتأخر بضع دقائق بسبب كاش GitHub
+      const r1=await fetch(`${GH_RAW}?_=${Date.now()}`);
+      if(r1.ok){ rawText = await r1.text(); }
+    }
+    if(rawText!==undefined){
+      const d=JSON.parse(rawText);
+      let payload=d;
+      // دعم الصيغة المضغوطة الجديدة (_z) مع الحفاظ على القدرة على قراءة الصيغة القديمة غير المضغوطة
+      if(d && typeof d._z === 'string'){
+        try{
+          const decompressed = LZString.decompressFromBase64(d._z);
+          if(decompressed){ payload = JSON.parse(decompressed); }
+          else { throw new Error('فشل فك الضغط'); }
+        }catch(e){
+          console.error('فشل فك ضغط البيانات:',e);
+          toast('❌ خطأ في قراءة البيانات المضغوطة — لم يتم تعديل أي شيء');
+          payload = {nodes:nodes,nextId:nextId}; // لا نلمس البيانات الحالية في الذاكرة عند الفشل
+        }
+      }
+      nodes=payload.nodes||{}; nextId=payload.nextId||1;
+    }
+    // سجل الزوار وكلمات المرور المؤقتة: تبقى على JSONBin كما هي
+    if(isCloudOK()){
+      const headers = binMasterKey ? {'X-Master-Key': binMasterKey} : {'X-Access-Key': binReadKey};
+      const r2=await fetch(`${BIN_BASE}/${binSettingsId}/latest`,{headers});
+      if(r2.ok){const j=await r2.json();tempPasswords=(j.record||{}).tempPws||[];}
+    }
+  }catch(e){toast('⚠️ تعذّر الاتصال — تحقق من الإنترنت');}
   bar(false); render();
   // إذا كان الوضع مطوياً، افتح الجذر تلقائياً
   if(_treeMode==='collapsed'){
@@ -680,30 +710,50 @@ async function loadFromCloud(){
 
 let _saveTimer=null;
 async function save(){
-  if(!binMasterKey){ toast('⚠️ الحفظ يتطلب دخول المدير بمفتاح Master Key'); return; }
-  if(!isCloudOK()) return;
+  if(!ghToken){ toast('⚠️ الحفظ يتطلب دخول المدير بـ GitHub Token'); return; }
   clearTimeout(_saveTimer);
   _saveTimer=setTimeout(async()=>{
     bar(true);
     try{
-      // ضغط البيانات قبل الإرسال لتجنب تجاوز حد JSONBin
-      const rawJson=JSON.stringify({nodes,nextId});
-      const compressed=LZString.compressToBase64(rawJson);
-      // تحقق من صحة الضغط
-      const verify=LZString.decompressFromBase64(compressed);
-      if(!verify||verify!==rawJson){ toast('❌ خطأ في الضغط، لم يتم الحفظ'); bar(false); return; }
+      const rawJson = JSON.stringify({nodes,nextId});
+      const compressed = LZString.compressToBase64(rawJson);
+      // تحقق أمان: نفك الضغط فوراً ونتأكد إنه يطابق الأصل قبل الإرسال — لو في أي خلل، نوقف ولا نرسل شيء
+      const verify = LZString.decompressFromBase64(compressed);
+      if(verify !== rawJson){
+        toast('❌ تم إيقاف الحفظ: فشل التحقق من سلامة الضغط — بياناتك الحالية لم تتأثر');
+        console.error('Compression verification failed — aborting save to protect data');
+        bar(false);
+        return;
+      }
+      const contentJson = JSON.stringify({_z:compressed});
+      const contentBase64 = btoa(contentJson); // ascii آمن (ناتج LZString base64 + علامات JSON فقط)
 
-      const res=await fetch(`${BIN_BASE}/${binDataId}`,{
+      // الخطوة 1: نجلب sha الحالي للملف (مطلوب من GitHub لتحديث ملف موجود)
+      let sha;
+      try{
+        const getRes = await fetch(`${GH_API}?ref=${GH_BRANCH}`,{
+          headers:{'Authorization':'token '+ghToken,'Accept':'application/vnd.github+json'}
+        });
+        if(getRes.ok){ const gj=await getRes.json(); sha=gj.sha; }
+      }catch(e){ /* لو الملف مش موجود أصلاً (أول حفظ)، نكمل بدون sha */ }
+
+      // الخطوة 2: نحفظ الملف (تحديث أو إنشاء أول نسخة)
+      const putRes = await fetch(GH_API,{
         method:'PUT',
-        headers:{'Content-Type':'application/json','X-Master-Key':binMasterKey},
-        body:JSON.stringify({_z:compressed})
+        headers:{'Authorization':'token '+ghToken,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
+        body: JSON.stringify({
+          message: 'تحديث بيانات الشجرة - '+new Date().toLocaleString('ar-EG'),
+          content: contentBase64,
+          sha: sha,
+          branch: GH_BRANCH
+        })
       });
-      if(!res.ok){
-        const errTxt=await res.text().catch(()=>'');
-        toast('❌ فشل الحفظ: '+res.status+' — تحقق من Master Key');
-        console.error('Save failed:',res.status,errTxt);
+      if(!putRes.ok){
+        const errTxt=await putRes.text().catch(()=>'');
+        toast('❌ فشل الحفظ: '+putRes.status+' — تحقق من GitHub Token');
+        console.error('Save failed:',putRes.status,errTxt);
       } else {
-        toast('✅ تم الحفظ في السحابة');
+        toast('✅ تم الحفظ على GitHub');
       }
     }catch(e){toast('❌ فشل الحفظ: تعذّر الاتصال');console.error(e);}
     bar(false);
@@ -737,12 +787,14 @@ function bar(on){
 // ══════════════════════════════════════════════════
 window.onload=()=>{
   loadBinConfig();
-  if(isCloudOK()) loadFromCloud(); else render();
+  loadFromCloud(); // بيانات الشجرة عامة على GitHub وتُحمَّل دائماً، بغض النظر عن إعدادات JSONBin
   setTimeout(initOrders, 800);
   setTimeout(recordVisit, 3000);
 };
 
-// وضع الشجرة: 'open' = مفتوحة كاملة، 'collapsed' = مطوية
+// ══════════════════════════════════════════════════
+//  TREE MODE  (مفتوحة / مطوية)
+// ══════════════════════════════════════════════════
 let _treeMode = 'open'; // الافتراضي دائماً مفتوح عند كل فتح
 localStorage.setItem('treeMode','open');
 const _expanded = new Set();
@@ -796,6 +848,9 @@ function visibleNodes(){
   return [...visible];
 }
 
+// ══════════════════════════════════════════════════
+//  AUTO LAYOUT  — always recalculate from scratch
+// ══════════════════════════════════════════════════
 function autoLayout(){
   // مسافات مضغوطة في الوضع المطوي
   const hgap = _treeMode==='collapsed' ? 20 : H_GAP;
@@ -812,6 +867,7 @@ function autoLayout(){
     if(!n.parentId||(vids&&!vids.has(n.parentId))) roots.push(n.id);
     else (children[n.parentId]=children[n.parentId]||[]).push(n.id);
   });
+  // رتب الأبناء حسب order
   Object.keys(children).forEach(pid=>{
     children[pid].sort((a,b)=>(nodes[a].order||0)-(nodes[b].order||0));
   });
@@ -832,7 +888,7 @@ function autoLayout(){
     let cur=colStart;
     kids.forEach(k=>{ place(k,depth+1,cur); cur+=spanOf(k); });
     const first=nodes[kids[0]].x;
-    const last=nodes[kids[kids.length-1]].x;
+    const last =nodes[kids[kids.length-1]].x;
     nodes[id].x=(first+last)/2;
     nodes[id].y=depth*(NODE_H+vgap)+60;
   }
@@ -1166,17 +1222,20 @@ function openAdminLogin(){ openModal('adminModal'); }
 async function doAdminLogin(){
   const pw=document.getElementById('adminPass').value.trim();
   const mk=document.getElementById('adminMasterKey').value.trim();
+  const gt=document.getElementById('adminGhToken').value.trim();
   document.getElementById('adminPass').value='';
   document.getElementById('adminMasterKey').value='';
+  document.getElementById('adminGhToken').value='';
 
   const hashBuffer=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(pw));
   const hashHex=Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,"0")).join("");
 
   if(hashHex===adminPass){
     isAdmin=true; isTempUser=false;
-    if(mk) binMasterKey=mk; // خزّن المفتاح في الذاكرة فقط
+    if(mk) binMasterKey=mk; // لسجل الزوار وكلمات المرور المؤقتة فقط
+    if(gt){ ghToken=gt; loadFromCloud(); } // لحفظ بيانات الشجرة + إعادة تحميل فوري بأحدث نسخة بدون كاش
     closeModal('adminModal'); updateAdminUI();
-    toast(mk?'✅ مرحباً بك أيها المدير — صلاحية كاملة':'✅ مرحباً بك أيها المدير — عرض فقط');
+    toast(gt?'✅ مرحباً بك أيها المدير — صلاحية كاملة':'✅ مرحباً بك أيها المدير — عرض فقط');
     return;
   }
   const now=Date.now();
@@ -1184,6 +1243,7 @@ async function doAdminLogin(){
   if(m){
     isAdmin=false; isTempUser=true;
     if(mk) binMasterKey=mk;
+    if(gt){ ghToken=gt; loadFromCloud(); }
     closeModal('adminModal'); updateAdminUI(m.label);
     toast('✅ مرحباً '+m.label);
     return;
@@ -1622,9 +1682,7 @@ function toggleTheme(){
   if(btn) btn.textContent=isLight?'☀️':'🌙';
 }
 
-if(localStorage.getItem('theme')==='dark'){
-  // الداكن محفوظ صراحةً فقط
-} else {
+if(localStorage.getItem('theme')==='light'){
   document.documentElement.classList.add('light-theme');
 }
 
