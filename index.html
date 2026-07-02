@@ -96,6 +96,23 @@
   .node-btn-parent{background:rgba(52,152,219,.15);color:#5dade2;border:1px solid rgba(52,152,219,.4);}
   .node-btn-parent:hover{background:rgba(52,152,219,.3);}
 
+  /* ── زر +/− للوضع المطوي ── */
+  .node-expand-btn{
+    position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);
+    width:26px;height:26px;border-radius:50%;
+    background:var(--gold);color:#0f0e0c;
+    border:2px solid var(--bg);
+    font-size:16px;font-weight:700;line-height:1;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+    z-index:20;box-shadow:0 2px 8px rgba(0,0,0,.4);
+    transition:transform .15s,background .15s;
+    font-family:'Tajawal',sans-serif;
+  }
+  .node-expand-btn:hover{background:var(--gold-light);transform:translateX(-50%) scale(1.15);}
+  /* إخفاء كل الأسهم في الوضع المطوي */
+  .collapsed-mode .sibling-nav{display:none !important;}
+  .collapsed-mode .sibling-nav.nav-down{display:none !important;}
+
   /* ── أزرار التنقل بين الإخوة ── */
   .sibling-nav{position:absolute;top:50%;transform:translateY(-50%);
     display:flex;flex-direction:column;gap:3px;z-index:10;}
@@ -255,7 +272,6 @@
     #searchInput:focus{width:190px;}
   }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 </head>
 <body>
 
@@ -428,15 +444,10 @@
     <div class="form-group"><label>كلمة المرور</label>
       <input type="password" id="adminPass" placeholder="••••••••"
         onkeydown="if(event.key==='Enter')doAdminLogin()"></div>
-    <div class="form-group"><label>🐙 GitHub Token (لحفظ بيانات الشجرة)</label>
-      <input type="password" id="adminGhToken" placeholder="ghp_..."
-        onkeydown="if(event.key==='Enter')doAdminLogin()">
-      <div style="font-size:10px;color:var(--text-dim);margin-top:4px">مطلوب فقط للإضافة والتعديل على الشجرة — اتركه فارغاً للعرض فقط</div>
-    </div>
-    <div class="form-group"><label>🔐 Master Key (لسجل الزوار وكلمات المرور المؤقتة)</label>
+    <div class="form-group"><label>🔐 Master Key (للحفظ)</label>
       <input type="password" id="adminMasterKey" placeholder="$2a$10$..."
         onkeydown="if(event.key==='Enter')doAdminLogin()">
-      <div style="font-size:10px;color:var(--text-dim);margin-top:4px">اختياري — مطلوب فقط لو حابب تستخدم سجل الزوار وكلمات المرور المؤقتة</div>
+      <div style="font-size:10px;color:var(--text-dim);margin-top:4px">مطلوب فقط للإضافة والتعديل — اتركه فارغاً للعرض فقط</div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeModal('adminModal')">إلغاء</button>
@@ -473,6 +484,13 @@
         • على كل شخص أزرار صغيرة: ↑ للأب، ↓ للأبناء، ◀▶ للإخوة البعيدين — لتسهيل التنقل.<br>
         • زر 🎯 يعيد توسيط الشجرة في أي وقت إذا ضعت داخلها.<br>
         • زر 🌙/☀️ يبدّل بين المظهر الداكن والفاتح.
+      </div>
+
+      <div style="font-weight:700;color:var(--gold);margin:14px 0 6px">🌿 طريقة العرض</div>
+      <div style="color:var(--text-dim)">
+        • زر <b>🌳 مفتوحة</b> يعرض الشجرة كاملة دفعة واحدة — مناسب للاطلاع العام والتصدير.<br>
+        • زر <b>🌿 مطوية</b> يعرض الشجرة بشكل تفاعلي — يظهر الجذر فقط في البداية، وعند الضغط على <b>+</b> تنكشف أبناء ذلك الشخص، وعند الضغط على <b>−</b> تُطوى من جديد وتعود إليه تلقائياً.<br>
+        • الوضع المطوي مناسب للتنقل داخل الشجرة الكبيرة والبحث عن فرع بعينه بدون ضياع.
       </div>
 
       <div style="font-weight:700;color:var(--gold);margin:14px 0 6px">📤 التصدير</div>
@@ -519,11 +537,12 @@
   <div class="modal">
     <h3>☁️ إعداد التخزين السحابي</h3>
     <p style="font-size:12px;color:var(--text-dim);margin-bottom:14px;line-height:1.7">
-      هذه النسخة تخزّن بيانات الشجرة على <strong style="color:var(--gold)">GitHub</strong> (مستودع: <code style="background:#111;padding:1px 4px;border-radius:3px">kullabqusai-rgb/Kullab_Family</code>) — لا يحتاج إعداد هنا.<br>
-      الإعدادات بالأسفل خاصة فقط بـ <strong style="color:var(--gold)">سجل الزوار وكلمات المرور المؤقتة</strong> (اختياري، عبر JSONBin.io).
+      استخدم <strong style="color:var(--gold)">JSONBin.io</strong> المجاني لحفظ البيانات على الإنترنت بحيث يراها الجميع.
     </p>
     <div class="form-group"><label>🔑 Master Key</label>
       <input type="password" id="binMasterKey" placeholder="$2a$10$..."></div>
+    <div class="form-group"><label>📦 Bin ID — البيانات الرئيسية</label>
+      <input type="text" id="binDataId" placeholder="64abc123..."></div>
     <div class="form-group"><label>📦 Bin ID — الإعدادات والكلمات المؤقتة</label>
       <input type="text" id="binSettingsId" placeholder="64def456..."></div>
     <details style="margin-bottom:12px">
@@ -531,10 +550,9 @@
       <div style="font-size:11px;color:var(--text-dim);line-height:1.9;margin-top:8px;padding:10px;background:var(--surface2);border-radius:8px">
         1. سجّل مجاناً على <strong style="color:var(--gold-light)">jsonbin.io</strong><br>
         2. API Keys ← انسخ <strong>Master Key</strong><br>
-        3. أنشئ Bin → <code style="background:#111;padding:1px 4px;border-radius:3px">{"tempPws":[]}</code> → انسخ ID<br>
-        4. في إعدادات الـ Bin → اجعل <strong>Private: OFF</strong><br>
-        <br>
-        ملاحظة: حفظ بيانات الشجرة نفسها يتم عبر <strong style="color:var(--gold-light)">GitHub Token</strong> من نافذة دخول المدير، وليس من هنا.
+        3. أنشئ Bin جديد → <code style="background:#111;padding:1px 4px;border-radius:3px">{"nodes":{},"nextId":1}</code> → انسخ ID → البيانات الرئيسية<br>
+        4. أنشئ Bin ثاني → <code style="background:#111;padding:1px 4px;border-radius:3px">{"tempPws":[]}</code> → انسخ ID → الإعدادات<br>
+        5. في إعدادات كل Bin → اجعل <strong>Private: OFF</strong>
       </div>
     </details>
     <div class="modal-actions">
@@ -575,6 +593,7 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <script>
 // ══════════════════════════════════════════════════
 //  STATE
@@ -597,37 +616,27 @@ const H_GAP  = 50,  V_GAP  = 90;
 // ══════════════════════════════════════════════════
 const CFG_KEY = 'ftree_cfg';
 const BIN_BASE = 'https://api.jsonbin.io/v3/b';
-let binMasterKey='';  // فقط لسجل الزوار وكلمات المرور المؤقتة (JSONBin) — لا يُخزَّن في الكود
-let binReadKey='$2a$10$gHi821O7wSvpjKS3fGt4De7JVpXsXl3OgNI9ssOjtMjdzC7e2bDWi'; // للقراءة فقط (عام) — لسجل الزوار فقط
+let binMasterKey='';  // لا يُخزَّن في الكود — يُدخله المدير فقط عند تسجيل الدخول
+let binReadKey='$2a$10$gHi821O7wSvpjKS3fGt4De7JVpXsXl3OgNI9ssOjtMjdzC7e2bDWi'; // للقراءة فقط (عام)
+let binDataId='6a2ddb99f5f4af5e29edacdb';
 let binSettingsId='6a2ddbd1da38895dfebc27bc';
 let binVisitorsId='6a4258fada38895dfe0f93f7';
-
-// ══════════════════════════════════════════════════
-//  GITHUB CONFIG  (بيانات الشجرة الأساسية مخزّنة هنا بدل JSONBin)
-// ══════════════════════════════════════════════════
-const GH_OWNER  = 'kullabqusai-rgb';
-const GH_REPO   = 'Kullab_Family';
-const GH_BRANCH = 'main';
-const GH_PATH   = 'family-tree-data.json';
-const GH_API    = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${GH_PATH}`;
-const GH_RAW    = `https://raw.githubusercontent.com/${GH_OWNER}/${GH_REPO}/${GH_BRANCH}/${GH_PATH}`;
-let ghToken=''; // يُدخله المدير فقط عند تسجيل الدخول — لا يُخزَّن في الكود
 
 function loadBinConfig(){
   // المفاتيح مدمجة في الكود مباشرة
 }
 function saveBinConfig(){
   const mk =document.getElementById('binMasterKey').value.trim();
+  const did=document.getElementById('binDataId').value.trim();
   const sid=document.getElementById('binSettingsId').value.trim();
-  if(!mk||!sid){toast('⚠️ الرجاء تعبئة جميع الحقول');return;}
-  localStorage.setItem(CFG_KEY,JSON.stringify({mk,sid}));
-  binMasterKey=mk; binSettingsId=sid;
+  if(!mk||!did||!sid){toast('⚠️ الرجاء تعبئة جميع الحقول');return;}
+  localStorage.setItem(CFG_KEY,JSON.stringify({mk,did,sid}));
+  binMasterKey=mk; binDataId=did; binSettingsId=sid;
   closeModal('binSetupModal');
   toast('✅ تم الحفظ — جاري التحميل...');
   loadFromCloud();
 }
-// يُستخدم فقط لسجل الزوار وكلمات المرور المؤقتة (JSONBin) — بيانات الشجرة منفصلة تماماً وتُقرأ من GitHub دائماً
-function isCloudOK(){ return (binMasterKey||binReadKey)&&binSettingsId; }
+function isCloudOK(){ return (binMasterKey||binReadKey)&&binDataId&&binSettingsId; }
 
 // ══════════════════════════════════════════════════
 //  CLOUD  READ / WRITE
@@ -635,82 +644,66 @@ function isCloudOK(){ return (binMasterKey||binReadKey)&&binSettingsId; }
 async function loadFromCloud(){
   bar(true);
   try{
-    // بيانات الشجرة: تُقرأ دائماً من GitHub (ملف عام، لا حاجة لأي مفتاح)
-    const r1=await fetch(`${GH_RAW}?_=${Date.now()}`); // كسر الكاش لضمان أحدث نسخة
+    const headers = binMasterKey
+      ? {'X-Master-Key': binMasterKey}
+      : {'X-Access-Key': binReadKey};
+    const r1=await fetch(`${BIN_BASE}/${binDataId}/latest`,{headers});
     if(r1.ok){
-      const d=await r1.json();
-      let payload=d;
-      // دعم الصيغة المضغوطة الجديدة (_z) مع الحفاظ على القدرة على قراءة الصيغة القديمة غير المضغوطة
-      if(d && typeof d._z === 'string'){
+      const j=await r1.json();
+      const d=j.record||{};
+      if(d._z){
+        // بيانات مضغوطة
         try{
-          const decompressed = LZString.decompressFromBase64(d._z);
-          if(decompressed){ payload = JSON.parse(decompressed); }
-          else { throw new Error('فشل فك الضغط'); }
-        }catch(e){
-          console.error('فشل فك ضغط البيانات:',e);
-          toast('❌ خطأ في قراءة البيانات المضغوطة — لم يتم تعديل أي شيء');
-          payload = {nodes:nodes,nextId:nextId}; // لا نلمس البيانات الحالية في الذاكرة عند الفشل
-        }
+          const decompressed=LZString.decompressFromBase64(d._z);
+          if(decompressed){
+            const payload=JSON.parse(decompressed);
+            nodes=payload.nodes||{}; nextId=payload.nextId||1;
+          }
+        }catch(e){ nodes={}; nextId=1; }
+      } else {
+        // بيانات غير مضغوطة (قديمة)
+        nodes=d.nodes||{}; nextId=d.nextId||1;
       }
-      nodes=payload.nodes||{}; nextId=payload.nextId||1;
     }
-    // سجل الزوار وكلمات المرور المؤقتة: تبقى على JSONBin كما هي
-    if(isCloudOK()){
-      const headers = binMasterKey ? {'X-Master-Key': binMasterKey} : {'X-Access-Key': binReadKey};
-      const r2=await fetch(`${BIN_BASE}/${binSettingsId}/latest`,{headers});
-      if(r2.ok){const j=await r2.json();tempPasswords=(j.record||{}).tempPws||[];}
-    }
-  }catch(e){toast('⚠️ تعذّر الاتصال — تحقق من الإنترنت');}
+    const r2=await fetch(`${BIN_BASE}/${binSettingsId}/latest`,{headers});
+    if(r2.ok){const j=await r2.json();tempPasswords=(j.record||{}).tempPws||[];}
+  }catch(e){toast('⚠️ تعذّر الاتصال بالسحابة');}
   bar(false); render();
+  // إذا كان الوضع مطوياً، افتح الجذر تلقائياً
+  if(_treeMode==='collapsed'){
+    _expanded.clear();
+    Object.values(nodes).filter(n=>!n.parentId).forEach(n=>_expanded.add(n.id));
+    render();
+  }
   setTimeout(()=>{ window._userHasPanned=false; window._centerTree&&window._centerTree(); }, 400);
 }
 
 let _saveTimer=null;
 async function save(){
-  if(!ghToken){ toast('⚠️ الحفظ يتطلب دخول المدير بـ GitHub Token'); return; }
+  if(!binMasterKey){ toast('⚠️ الحفظ يتطلب دخول المدير بمفتاح Master Key'); return; }
+  if(!isCloudOK()) return;
   clearTimeout(_saveTimer);
   _saveTimer=setTimeout(async()=>{
     bar(true);
     try{
-      const rawJson = JSON.stringify({nodes,nextId});
-      const compressed = LZString.compressToBase64(rawJson);
-      // تحقق أمان: نفك الضغط فوراً ونتأكد إنه يطابق الأصل قبل الإرسال — لو في أي خلل، نوقف ولا نرسل شيء
-      const verify = LZString.decompressFromBase64(compressed);
-      if(verify !== rawJson){
-        toast('❌ تم إيقاف الحفظ: فشل التحقق من سلامة الضغط — بياناتك الحالية لم تتأثر');
-        console.error('Compression verification failed — aborting save to protect data');
-        bar(false);
-        return;
-      }
-      const contentJson = JSON.stringify({_z:compressed});
-      const contentBase64 = btoa(contentJson); // ascii آمن (ناتج LZString base64 + علامات JSON فقط)
+      // ضغط البيانات قبل الإرسال لتجنب تجاوز حد JSONBin
+      const rawJson=JSON.stringify({nodes,nextId});
+      const compressed=LZString.compressToBase64(rawJson);
+      // تحقق من صحة الضغط
+      const verify=LZString.decompressFromBase64(compressed);
+      if(!verify||verify!==rawJson){ toast('❌ خطأ في الضغط، لم يتم الحفظ'); bar(false); return; }
 
-      // الخطوة 1: نجلب sha الحالي للملف (مطلوب من GitHub لتحديث ملف موجود)
-      let sha;
-      try{
-        const getRes = await fetch(`${GH_API}?ref=${GH_BRANCH}`,{
-          headers:{'Authorization':'token '+ghToken,'Accept':'application/vnd.github+json'}
-        });
-        if(getRes.ok){ const gj=await getRes.json(); sha=gj.sha; }
-      }catch(e){ /* لو الملف مش موجود أصلاً (أول حفظ)، نكمل بدون sha */ }
-
-      // الخطوة 2: نحفظ الملف (تحديث أو إنشاء أول نسخة)
-      const putRes = await fetch(GH_API,{
+      const res=await fetch(`${BIN_BASE}/${binDataId}`,{
         method:'PUT',
-        headers:{'Authorization':'token '+ghToken,'Accept':'application/vnd.github+json','Content-Type':'application/json'},
-        body: JSON.stringify({
-          message: 'تحديث بيانات الشجرة - '+new Date().toLocaleString('ar-EG'),
-          content: contentBase64,
-          sha: sha,
-          branch: GH_BRANCH
-        })
+        headers:{'Content-Type':'application/json','X-Master-Key':binMasterKey},
+        body:JSON.stringify({_z:compressed})
       });
-      if(!putRes.ok){
-        const errTxt=await putRes.text().catch(()=>'');
-        toast('❌ فشل الحفظ: '+putRes.status+' — تحقق من GitHub Token');
-        console.error('Save failed:',putRes.status,errTxt);
+      if(!res.ok){
+        const errTxt=await res.text().catch(()=>'');
+        toast('❌ فشل الحفظ: '+res.status+' — تحقق من Master Key');
+        console.error('Save failed:',res.status,errTxt);
       } else {
-        toast('✅ تم الحفظ على GitHub');
+        toast('✅ تم الحفظ في السحابة');
       }
     }catch(e){toast('❌ فشل الحفظ: تعذّر الاتصال');console.error(e);}
     bar(false);
@@ -744,22 +737,81 @@ function bar(on){
 // ══════════════════════════════════════════════════
 window.onload=()=>{
   loadBinConfig();
-  loadFromCloud(); // بيانات الشجرة عامة على GitHub وتُحمَّل دائماً، بغض النظر عن إعدادات JSONBin
+  if(isCloudOK()) loadFromCloud(); else render();
   setTimeout(initOrders, 800);
   setTimeout(recordVisit, 3000);
 };
 
-// ══════════════════════════════════════════════════
-//  AUTO LAYOUT  — always recalculate from scratch
-// ══════════════════════════════════════════════════
+// وضع الشجرة: 'open' = مفتوحة كاملة، 'collapsed' = مطوية
+let _treeMode = 'open'; // الافتراضي دائماً مفتوح عند كل فتح
+localStorage.setItem('treeMode','open');
+const _expanded = new Set();
+
+function toggleTreeMode(){
+  _treeMode = _treeMode==='open' ? 'collapsed' : 'open';
+  localStorage.setItem('treeMode', _treeMode);
+  if(_treeMode==='collapsed'){
+    // أبقِ الجذر مفتوحاً فقط
+    _expanded.clear();
+    Object.values(nodes).filter(n=>!n.parentId).forEach(n=>_expanded.add(n.id));
+  }
+  window._userHasPanned=false;
+  render();
+  setTimeout(()=>window._centerTree&&window._centerTree(), 200);
+}
+
+function toggleExpand(id){
+  if(_expanded.has(id)){
+    // عند الضم: امسح هذه العقدة وكل أحفادها من _expanded
+    function collapseAll(nodeId){
+      _expanded.delete(nodeId);
+      Object.values(nodes).filter(n=>n.parentId===nodeId).forEach(c=>collapseAll(c.id));
+    }
+    collapseAll(id);
+    document.getElementById('lines').innerHTML='';
+    render();
+    // انتقل للعقدة التي طويناها
+    setTimeout(()=>navToSibling(id), 150);
+  } else {
+    _expanded.add(id);
+    document.getElementById('lines').innerHTML='';
+    render();
+  }
+}
+function visibleNodes(){
+  if(_treeMode==='open') return Object.keys(nodes);
+  const visible=new Set();
+  const queue=Object.values(nodes).filter(n=>!n.parentId).map(n=>n.id);
+  const seen=new Set();
+  while(queue.length){
+    const id=queue.shift();
+    if(seen.has(id)) continue; seen.add(id);
+    visible.add(id);
+    if(_expanded.has(id)){
+      const kids=Object.values(nodes).filter(n=>n.parentId===id);
+      kids.sort((a,b)=>(a.order||0)-(b.order||0));
+      kids.forEach(k=>queue.push(k.id));
+    }
+  }
+  return [...visible];
+}
+
 function autoLayout(){
+  // مسافات مضغوطة في الوضع المطوي
+  const hgap = _treeMode==='collapsed' ? 20 : H_GAP;
+  const vgap = _treeMode==='collapsed' ? 30 : V_GAP;
+
   const children={};
   const roots=[];
+
+  // في المطوي: layout للعقد المرئية فقط
+  const vids = _treeMode==='collapsed' ? new Set(visibleNodes()) : null;
+
   Object.values(nodes).forEach(n=>{
-    if(!n.parentId) roots.push(n.id);
-    else{ (children[n.parentId]=children[n.parentId]||[]).push(n.id); }
+    if(vids && !vids.has(n.id)) return;
+    if(!n.parentId||(vids&&!vids.has(n.parentId))) roots.push(n.id);
+    else (children[n.parentId]=children[n.parentId]||[]).push(n.id);
   });
-  // رتب الأبناء حسب order
   Object.keys(children).forEach(pid=>{
     children[pid].sort((a,b)=>(nodes[a].order||0)-(nodes[b].order||0));
   });
@@ -773,16 +825,16 @@ function autoLayout(){
   function place(id,depth,colStart){
     const kids=children[id]||[];
     if(!kids.length){
-      nodes[id].x = colStart*(NODE_W+H_GAP)+60;
-      nodes[id].y = depth*(NODE_H+V_GAP)+60;
+      nodes[id].x=colStart*(NODE_W+hgap)+60;
+      nodes[id].y=depth*(NODE_H+vgap)+60;
       return;
     }
     let cur=colStart;
     kids.forEach(k=>{ place(k,depth+1,cur); cur+=spanOf(k); });
     const first=nodes[kids[0]].x;
-    const last =nodes[kids[kids.length-1]].x;
+    const last=nodes[kids[kids.length-1]].x;
     nodes[id].x=(first+last)/2;
-    nodes[id].y=depth*(NODE_H+V_GAP)+60;
+    nodes[id].y=depth*(NODE_H+vgap)+60;
   }
 
   let col=0;
@@ -795,6 +847,7 @@ function autoLayout(){
 function render(){
   const canvas=document.getElementById('tree-canvas');
   canvas.querySelectorAll('.node').forEach(n=>n.remove());
+  document.getElementById('lines').innerHTML='';
 
   const ids=Object.keys(nodes);
   document.getElementById('emptyState').style.display=ids.length?'none':'block';
@@ -805,17 +858,32 @@ function render(){
 
   if(!ids.length) return;
 
-  autoLayout();
+  // في وضع مطوي: تأكد من فتح الجذر دائماً
+  if(_treeMode==='collapsed' && _expanded.size===0){
+    Object.values(nodes).filter(n=>!n.parentId).forEach(n=>_expanded.add(n.id));
+  }
 
-  // Canvas size
-  let maxX=0,maxY=0;
-  ids.forEach(id=>{ maxX=Math.max(maxX,nodes[id].x+NODE_W+40); maxY=Math.max(maxY,nodes[id].y+NODE_H+40); });
+  autoLayout(); // يحسب x,y للعقد المرئية
+
+  const vids=visibleNodes(); // اجلب القائمة بعد حساب المواضع
+
+  // Canvas size — تجاهل العقد ذات x=0,y=0 (لم تُوضع)
+  let maxX=100,maxY=100;
+  vids.forEach(id=>{
+    const n=nodes[id];
+    if(!n||(!n.x&&!n.y)) return;
+    maxX=Math.max(maxX,n.x+NODE_W+40);
+    maxY=Math.max(maxY,n.y+NODE_H+40);
+  });
   canvas.style.width =maxX+'px';
   canvas.style.height=Math.max(maxY,window.innerHeight-150)+400+'px';
   document.getElementById('lines').setAttribute('width', maxX);
   document.getElementById('lines').setAttribute('height',Math.max(maxY,window.innerHeight-150));
 
-  ids.forEach(id=>drawNode(id));
+  // أضف class للوضع المطوي على الـ canvas
+  document.getElementById('canvas-wrap').classList.toggle('collapsed-mode', _treeMode==='collapsed');
+
+  vids.forEach(id=>drawNode(id));
   drawLines();
 }
 
@@ -828,6 +896,7 @@ function updateToolbar(){
     ${adminBtns}
     <button class="btn btn-blue" onclick="openExportModal()">📤 تصدير</button>
     <button class="btn btn-outline" onclick="window._userHasPanned=false;window._centerTree&&window._centerTree()" title="توسيط الشجرة">🎯</button>
+    <button class="btn btn-outline" id="treeModeBtn" onclick="toggleTreeMode()" title="تبديل طريقة العرض">${_treeMode==='collapsed'?'🌳 مفتوحة':'🌿 مطوية'}</button>
     <button class="btn btn-outline" id="themeBtn" onclick="toggleTheme()" title="تبديل المظهر">🌙</button>
     ${isAdmin?`<button class="btn btn-outline" onclick="openVisitors()" title="سجل الزوار">👁️</button>`:''}
     <span style="font-size:13px;color:var(--text-dim);padding:0 6px">👥 <strong style="color:var(--gold)">${Object.keys(nodes).length}</strong> فرد</span>
@@ -877,9 +946,14 @@ function drawNode(id){
       ${prevFar?`<div class="sibling-nav nav-left">${prevBtn}</div>`:''}`;
   }
 
-  // زر ↓ لكل أب له أبناء
+  // زر +/− للوضع المطوي وزر ↓
   const myChildren = Object.values(nodes).filter(c=>c.parentId===id).sort((a,b)=>a.x-b.x);
-  if(myChildren.length){
+  const hasKids = myChildren.length > 0;
+  const expandBtn = (_treeMode==='collapsed' && hasKids)
+    ? `<button class="node-expand-btn" onclick="toggleExpand('${id}')">${_expanded.has(id)?'−':'+'}</button>`
+    : '';
+  // زر ↓ فقط في وضع مفتوح
+  if(hasKids && _treeMode==='open'){
     sibNavHTML += `<div class="sibling-nav nav-down"><button class="sibnav-btn sibnav-down" onclick="navDown('${id}')" title="الابن">↓</button></div>`;
   }
 
@@ -888,7 +962,8 @@ function drawNode(id){
     <div class="node-avatar">${emoji}</div>
     <div class="node-name">${n.name}</div>
     <div class="node-info">${n.birth?'📅 '+n.birth:''}${n.note?(n.birth?' · ':'')+n.note:''}</div>
-    <div class="node-actions">${addParentBtn}${addBtn}${editBtn}${delBtn}</div>`;
+    <div class="node-actions">${addParentBtn}${addBtn}${editBtn}${delBtn}</div>
+    ${expandBtn}`;
 
   canvas.appendChild(div);
   attachLongPress(div, id);
@@ -896,9 +971,12 @@ function drawNode(id){
 
 function drawLines(){
   const svg=document.getElementById('lines');
-  svg.innerHTML='';
+  svg.innerHTML=''; // مسح كامل قبل إعادة الرسم
+  const vids=new Set(visibleNodes());
+  if(!vids.size) return;
+
   Object.values(nodes).forEach(n=>{
-    if(!n.parentId) return;
+    if(!n.parentId||!vids.has(n.id)||!vids.has(n.parentId)) return;
     const p=nodes[n.parentId]; if(!p) return;
     const px=p.x+NODE_W/2, py=p.y+NODE_H;
     const cx=n.x+NODE_W/2, cy=n.y;
@@ -915,7 +993,10 @@ function drawLines(){
     svg.appendChild(arr);
   });
   const byParent={};
-  Object.values(nodes).forEach(n=>{ if(n.parentId)(byParent[n.parentId]=byParent[n.parentId]||[]).push(n); });
+  Object.values(nodes).forEach(n=>{
+    if(n.parentId && vids.has(n.id) && vids.has(n.parentId))
+      (byParent[n.parentId]=byParent[n.parentId]||[]).push(n);
+  });
   Object.values(byParent).forEach(siblings=>{
     if(siblings.length<2) return;
     const ys=siblings.map(s=>s.y);
@@ -1085,20 +1166,17 @@ function openAdminLogin(){ openModal('adminModal'); }
 async function doAdminLogin(){
   const pw=document.getElementById('adminPass').value.trim();
   const mk=document.getElementById('adminMasterKey').value.trim();
-  const gt=document.getElementById('adminGhToken').value.trim();
   document.getElementById('adminPass').value='';
   document.getElementById('adminMasterKey').value='';
-  document.getElementById('adminGhToken').value='';
 
   const hashBuffer=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(pw));
   const hashHex=Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,"0")).join("");
 
   if(hashHex===adminPass){
     isAdmin=true; isTempUser=false;
-    if(mk) binMasterKey=mk; // لسجل الزوار وكلمات المرور المؤقتة فقط
-    if(gt) ghToken=gt; // لحفظ بيانات الشجرة على GitHub
+    if(mk) binMasterKey=mk; // خزّن المفتاح في الذاكرة فقط
     closeModal('adminModal'); updateAdminUI();
-    toast(gt?'✅ مرحباً بك أيها المدير — صلاحية كاملة':'✅ مرحباً بك أيها المدير — عرض فقط');
+    toast(mk?'✅ مرحباً بك أيها المدير — صلاحية كاملة':'✅ مرحباً بك أيها المدير — عرض فقط');
     return;
   }
   const now=Date.now();
@@ -1106,7 +1184,6 @@ async function doAdminLogin(){
   if(m){
     isAdmin=false; isTempUser=true;
     if(mk) binMasterKey=mk;
-    if(gt) ghToken=gt;
     closeModal('adminModal'); updateAdminUI(m.label);
     toast('✅ مرحباً '+m.label);
     return;
@@ -1321,26 +1398,36 @@ function focusNode(id){
   const n=nodes[id];
   if(!n) return;
 
+  // في الوضع المطوي: افتح كل الأجداد حتى الجذر أولاً
+  if(_treeMode==='collapsed'){
+    let cur=n.parentId;
+    while(cur&&nodes[cur]){
+      _expanded.add(cur);
+      cur=nodes[cur].parentId;
+    }
+    render(); // أعد الرسم لإظهار الشخص
+  }
+
   // تضيء العقدة
-  const nodeEl=document.getElementById('node-'+id);
-  if(nodeEl) nodeEl.classList.add('search-highlight');
+  setTimeout(()=>{
+    const nodeEl=document.getElementById('node-'+id);
+    if(nodeEl) nodeEl.classList.add('search-highlight');
 
-  // إطار مرئي حول العقدة
-  const frame=document.getElementById('focusFrame');
-  frame.style.display='block';
-  frame.style.left=(n.x-8)+'px';
-  frame.style.top =(n.y-8)+'px';
-  frame.style.width=(NODE_W+16)+'px';
-  frame.style.height=(NODE_H+16)+'px';
-  setTimeout(()=>{ if(frame) frame.style.display='none'; },3500);
+    // إطار مرئي حول العقدة
+    const frame=document.getElementById('focusFrame');
+    frame.style.display='block';
+    frame.style.left=(n.x-8)+'px';
+    frame.style.top =(n.y-8)+'px';
+    frame.style.width=(NODE_W+16)+'px';
+    frame.style.height=(NODE_H+16)+'px';
+    setTimeout(()=>{ if(frame) frame.style.display='none'; },3500);
 
-  // تحريك الـ pan نحو العقدة
-  const wrap=document.getElementById('canvas-wrap');
-  if(!wrap) return;
-  const ww=wrap.offsetWidth, wh=wrap.offsetHeight;
-  const nodeCX = n.x + NODE_W/2;
-  const nodeCY = n.y + NODE_H/2;
-  window._panTo(nodeCX, nodeCY, ww, wh);
+    // تحريك الـ pan نحو العقدة
+    const wrap=document.getElementById('canvas-wrap');
+    if(!wrap) return;
+    const ww=wrap.offsetWidth, wh=wrap.offsetHeight;
+    window._panTo(n.x+NODE_W/2, n.y+NODE_H/2, ww, wh);
+  }, _treeMode==='collapsed' ? 150 : 0);
 }
 
 function reorderNode(dir){
@@ -1535,7 +1622,9 @@ function toggleTheme(){
   if(btn) btn.textContent=isLight?'☀️':'🌙';
 }
 
-if(localStorage.getItem('theme')==='light'){
+if(localStorage.getItem('theme')==='dark'){
+  // الداكن محفوظ صراحةً فقط
+} else {
   document.documentElement.classList.add('light-theme');
 }
 
